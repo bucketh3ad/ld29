@@ -46,8 +46,8 @@ collideMobius : Player -> Player
 collideMobius ({x,y,vx,vy,angle} as p) =
   let collidingH = abs x >= 365
       collidingV = abs y >= 265
-  in {p | x <- if collidingH then -x else x
-        , y <- if collidingV then -y else y
+  in {p | x <- if collidingH || collidingV then -x else x
+        , y <- if collidingV || collidingH then -y else y
         , vx <- if collidingV then -vx else vx
         , vy <- if collidingH then -vy else vy }
 
@@ -105,9 +105,9 @@ drawGame ({state,player} as game) =
     , drawPlayer
       |> move (player.x, player.y)
       |> rotate (degrees player.angle)
-    , toForm (asText "A test" |> color white)
+    , toForm (toText "A test" |> Text.color white|> centered)
       |> move (0, 100)
-    , toForm (asText player |> color white)
+    , toForm (show player |> toText |> Text.color white |> centered )
       |> move (0, -100)
     ]
 
