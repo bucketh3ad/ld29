@@ -28,6 +28,13 @@ input = sampleOn delta (Input <~ Keyboard.space
 
 --UPDATE SECTION
 
+collideRect : Player -> Player
+collideRect ({x,y,vx,vy,angle} as p) =
+  let collidingH = abs x == 335
+      collidingV = abs y == 235
+  in {p | vx <- if collidingH then -vx else vx
+        , vy <- if collidingV then -vy else vy }
+
 applyThrust : Bool -> Float -> Player -> Player
 applyThrust active dt ({x,y,vx,vy,angle} as p) =
   let 
@@ -38,14 +45,14 @@ applyThrust active dt ({x,y,vx,vy,angle} as p) =
   in {p | vx <- vx'
         , vy <- vy'
         , x <- movePlayer dt x vx -335 335
-        , y <- movePlayer dt y vy -235 230 }
+        , y <- movePlayer dt y vy -235 235 }
         
 movePlayer : Float -> Float -> Float -> Float -> Float -> Float
 movePlayer dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
 
 stepPlayer : Input -> Player -> Player
 stepPlayer ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle} as p) =
-  let p' = applyThrust (dy == 1) dt p
+  let p' = collideRect <| applyThrust (dy == 1) dt p
   in {p' | angle <- angle - (toFloat dx * dt * 50)}
  
 
