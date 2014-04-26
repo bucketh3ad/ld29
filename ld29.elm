@@ -27,8 +27,27 @@ input = sampleOn delta (Input <~ Keyboard.space
                                ~ delta)
 
 --UPDATE SECTION
+
+applyThrust : Bool -> Float -> Player -> Player
+applyThrust active dt ({x,y,vx,vy,angle} as p) =
+  let 
+      vxA = if active then sin (degrees angle) else 0
+      vyA = if active then cos (degrees angle) else 0
+      vx' = clamp -200 200 (vx - vxA)
+      vy' = clamp -200 200 (vy + vyA)
+  in {p | vx <- vx'
+        , vy <- vy'
+        , x <- movePlayer dt x vx -335 335
+        , y <- movePlayer dt y vy -235 230 }
+        
+movePlayer : Float -> Float -> Float -> Float -> Float -> Float
+movePlayer dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
+
 stepPlayer : Input -> Player -> Player
-stepPlayer i p = {p | angle <- p.angle - ( toFloat i.dx * i.dt * 2) }
+stepPlayer ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle} as p) =
+  let p' = applyThrust (dy == 1) dt p
+  in {p' | angle <- angle - (toFloat dx * dt * 50)}
+ 
 
 stepGame : Input -> Game -> Game
 stepGame ({space,dx,dy,dt} as i) ({state,player} as g) =
@@ -62,7 +81,7 @@ drawGame ({state,player} as game) =
     [ background
     , drawPlayer
       |> move (player.x, player.y)
-      |> rotate player.angle
+      |> rotate (degrees player.angle)
     , toForm (asText "A test" |> color white)
       |> move (0, 100)
     , toForm (asText player |> color white)
