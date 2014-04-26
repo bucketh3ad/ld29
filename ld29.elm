@@ -8,6 +8,8 @@ type Player = {x:Float, y:Float, vx:Float, vy:Float, angle:Float}
 
 data GameState = Play | NewStage | NewRound | GameOver | Menu
 
+data Collision = Horizontal | Vertical 
+
 type Game = {state:GameState, player:Player}
 
 defaultGame : Game
@@ -25,6 +27,9 @@ input = sampleOn delta (Input <~ Keyboard.space
                                ~ lift .x Keyboard.arrows
                                ~ lift .y Keyboard.arrows
                                ~ delta)
+
+thrustFactor : Float
+thrustFactor = 2
 
 --UPDATE SECTION
 
@@ -54,8 +59,8 @@ collideMobius ({x,y,vx,vy,angle} as p) =
 applyThrust : Bool -> Float -> Player -> Player
 applyThrust active dt ({x,y,vx,vy,angle} as p) =
   let 
-      vxA = if active then sin (degrees angle) else 0
-      vyA = if active then cos (degrees angle) else 0
+      vxA = if active then thrustFactor*(sin (degrees angle)) else 0
+      vyA = if active then thrustFactor*(cos (degrees angle)) else 0
       vx' = clamp -200 200 (vx - vxA)
       vy' = clamp -200 200 (vy + vyA)
   in {p | vx <- vx'
@@ -69,12 +74,14 @@ movePlayer dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
 stepPlayer : Input -> Player -> Player
 stepPlayer ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle} as p) =
   let p' = collideMobius <| applyThrust (dy == 1) dt p
-  in {p' | angle <- angle - (toFloat dx * dt * 50)}
+  in {p' | angle <- angle - (toFloat dx * dt * 100)}
  
 
 stepGame : Input -> Game -> Game
 stepGame ({space,dx,dy,dt} as i) ({state,player} as g) =
-  {g | player <- stepPlayer i player}
+  let stuck = abs player.x == 365 && abs player.y == 265 -- TRAPPED IN THE CHAOSPHERE
+      p' = if stuck then {player | x <- 0, y <-0 } else player
+  in {g | player <- stepPlayer i p'}
 
 
 gameState : Signal Game
