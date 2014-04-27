@@ -46,6 +46,20 @@ input = sampleOn delta (Input <~ Keyboard.space
 thrustFactor : Float
 thrustFactor = 2
 
+outerXMax : Float
+outerXMax = 365
+
+innerXMax : Float
+innerXMax = 335
+
+outerYMax : Float
+outerYMax = 265
+
+innerYMax : Float
+innerYMax = 235
+
+
+
 
 --UPDATE SECTION
 
@@ -85,22 +99,22 @@ chaosphere = collideMobius [LeftRight,TopBottom]
 --Collision functions
 collideRect : [Collision] -> Player -> Player
 collideRect cols ({x,y,vx,vy,angle,rev} as p) =
-  let collidingH = abs x >= 335
-      collidingV = abs y >= 235
+  let collidingH = abs x >= innerXMax
+      collidingV = abs y >= innerYMax
   in {p | vx <- if collidingH && doH cols then -vx else vx
         , vy <- if collidingV && doV cols then -vy else vy }
         
 collideCyl : [Collision] -> Player -> Player
 collideCyl cols ({x,y,vx,vy,angle,rev} as p) =
-  let collidingH = abs x >= 365
-      collidingV = abs y >= 265
+  let collidingH = abs x >= outerXMax
+      collidingV = abs y >= outerYMax
   in {p | x <- if collidingH && doH cols then -x else x
         , y <- if collidingV && doV cols then -y else y }
         
 collideMobius : [Collision] -> Player -> Player
 collideMobius cols ({x,y,vx,vy,angle,rev} as p) =
-  let collidingH = abs x >= 365
-      collidingV = abs y >= 265
+  let collidingH = abs x >= outerXMax
+      collidingV = abs y >= outerYMax
       doV' = collidingV && doV cols
       doH' = collidingH && doH cols
       doMove = doH' || doV'
@@ -116,19 +130,23 @@ collideMobius cols ({x,y,vx,vy,angle,rev} as p) =
 applyThrust : Bool -> Float -> Player -> Player
 applyThrust active dt ({x,y,vx,vy,angle,rev} as p) =
   let 
-      vxA = if active then thrustFactor*(sin (degrees angle)) else 0
-      vyA = if active then thrustFactor*(cos (degrees angle)) else 0
+      vxA = if active 
+            then thrustFactor*(sin (degrees angle))
+            else 0
+      vyA = if active
+            then thrustFactor*(cos (degrees angle))
+            else 0
       vx' = clamp -200 200 (vx - vxA)
       vy' = clamp -200 200 (vy + vyA)
   in {p | vx <- vx'
         , vy <- vy'
-        , x <- movePlayer dt x vx -365 365
-        , y <- movePlayer dt y vy -265 265 }
+        , x <- movePlayer dt x vx -outerXMax outerXMax
+        , y <- movePlayer dt y vy -outerYMax outerYMax }
 
 enemyMovement : Float -> Enemy -> Enemy
 enemyMovement dt e = 
-  { e| x <- movePlayer dt e.x e.vx -365 365
-     , y <- movePlayer dt e.y e.vy -265 265 }
+  { e| x <- movePlayer dt e.x e.vx -outerXMax outerXMax
+     , y <- movePlayer dt e.y e.vy -outerYMax outerYMax }
 
 movePlayer : Float -> Float -> Float -> Float -> Float -> Float
 movePlayer dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
@@ -151,7 +169,7 @@ stepPlayer surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as p) =
  
 stepGame : Input -> Game -> Game
 stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemy} as g) =
-  let stuck = abs player.x == 365 && abs player.y == 265 -- TRAPPED IN THE CHAOSPHERE
+  let stuck = abs player.x == outerXMax && abs player.y == outerYMax
       p' = if stuck then {player | x <- 0, y <-0 } else player
   in {g | player <- stepPlayer surface i p'
         , enemy <- stepEnemy surface i enemy}
