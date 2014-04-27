@@ -12,25 +12,31 @@ data EnemyType = Small | Medium | Large
 
 type Enemy =  GameObject {size:EnemyType}
 
+type Bullet = GameObject {age:Float}
+
 data GameState = Play | NewStage | NewRound | GameOver | Menu
 
 data Collision = LeftRight | TopBottom
 
 type Surface = Player -> Player
 
-type Game = {state:GameState, player:Player, surface:Surface, enemy:Enemy}
+type Game = {state:GameState, player:Player, surface:Surface, enemy:Enemy, bullet:Bullet}
 
 defaultGame : Game
 defaultGame = { state = Play,
                 player = defaultPlayer,
                 surface = klein,
-                enemy = defaultEnemy }
+                enemy = defaultEnemy,
+                bullet = defaultBullet}
 
 defaultPlayer : Player
 defaultPlayer = {x = 0, y = 0, vx = 0, vy = 0, angle = 0, rev = False}
 
 defaultEnemy : Enemy
 defaultEnemy = {x = 0, y = 0, vx = 50, vy = 50, angle = 0, rev = False, size = Large}
+
+defaultBullet : Bullet
+defaultBullet = {x = 0, y = 0, vx = 0, vy = 0, angle = 0, rev = False, age = 0}
 
 
 delta : Signal Time
@@ -153,6 +159,20 @@ movePlayer dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
 
 
 --Update functions
+createBullet : Player -> Bullet
+createBullet ({x,y,vx,vy,angle,rev} as p) = 
+  let vx' = -(sin (degrees angle) * 200)
+      vy' = cos (degrees angle) * 200
+  in {x = p.x, y = p.y, vx = vx', vy = vy', angle = p.angle, rev = p.rev, age = 1}
+
+stepBullet : Surface -> Input -> Bullet -> Bullet
+stepBullet surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,age} as b) =
+  let age' = if age /= 0 && age <= 5 then age + dt else 0
+      b' = { b | x <- movePlayer dt x vx -outerXMax outerXMax
+               , y <- movePlayer dt y vy -outerYMax outerYMax }
+      b'' = surface <| {b' - age}
+  in {b'' | age = age'}
+
 stepEnemy : Surface -> Input -> Enemy -> Enemy
 stepEnemy surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,size} as e) =
   let angle' = if rev then angle + (dt * 50) else angle - (dt * 50)
@@ -168,11 +188,15 @@ stepPlayer surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as p) =
   in {p' | angle <- p'.angle - (toFloat dx' * dt * 100)}
  
 stepGame : Input -> Game -> Game
-stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemy} as g) =
+stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemy,bullet} as g) =
   let stuck = abs player.x == outerXMax && abs player.y == outerYMax
       p' = if stuck then {player | x <- 0, y <-0 } else player
+      b' = if bullet.age == 0 && space
+             then createBullet player
+             else stepBullet surface i bullet
   in {g | player <- stepPlayer surface i p'
-        , enemy <- stepEnemy surface i enemy}
+        , enemy <- stepEnemy surface i enemy
+        , bullet <- b'}
 
 gameState : Signal Game
 gameState = foldp stepGame defaultGame input
@@ -203,6 +227,9 @@ drawPlayer rev =
   , polygon [(0,15),(-10,-10),(10,-10)] |> outlined (solid white)
   ]
 
+drawBullet : Form
+drawBullet = circle 5 |> filled white
+
 drawEnemy : Form
 drawEnemy = group
   [ ngon 12 35 |> outlined (solid white)
@@ -211,7 +238,7 @@ drawEnemy = group
   ]
 
 drawGame : Game -> Element
-drawGame ({state,player,surface,enemy} as game) =
+drawGame ({state,player,surface,enemy,bullet} as game) =
   collage 800 600
     [ background
     , drawPlayer player.rev
@@ -220,6 +247,8 @@ drawGame ({state,player,surface,enemy} as game) =
     , drawEnemy 
       |> move (enemy.x, enemy.y)
       |> rotate (degrees enemy.angle)
+    , if bullet.age == 0 then toForm (spacer 1 1) else drawBullet
+      |> move (bullet.x, bullet.y)
     , toForm (show player |> toText |> Text.color white |> centered )
       |> move (0, -100)
     , toForm (show enemy |> toText |> Text.color white |> centered)
