@@ -245,9 +245,9 @@ stepGame : Input -> Game -> Game
 stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemies,bullet} as g) =
   let stuck = abs player.x == outerXMax && abs player.y == outerYMax
       p' = if stuck then {player | x <- 0, y <-0 } else player
-      b' = if not bullet.active && space
+      b' = if not bullet.active && space && state == Play
              then createBullet player
-             else stepBullet surface i bullet
+             else bullet
       bulletCollision = if bullet.active then mapBulletCollisions bullet enemies else (enemies,False)
       b'' = if not (snd bulletCollision) then b'
             else { b' | active <- False }
@@ -257,11 +257,14 @@ stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemies,bullet} as g) =
                   | playerCollision -> Lose
                   | otherwise -> Play
       p'' = if state' == Play then stepPlayer surface i p' else p'
-      e'' = if state' == Play then map (stepEnemy surface i) e' else e'
+      e'' = if | state' == Play -> map (stepEnemy surface i) e'
+               | state' == Win && space -> [defaultEnemy]
+               | otherwise -> e'
+      b''' = if state' == Play then stepBullet surface i b'' else { b'' | active <- False }
       state'' = if state /= Play && space then Play else state'
   in {g | player <- p''
         , enemies <- e''  
-        , bullet <- b''
+        , bullet <- b'''
         , state <- state'' }
 
 gameState : Signal Game
