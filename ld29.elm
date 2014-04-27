@@ -10,7 +10,7 @@ type Player = GameObject {}
 
 data EnemyType = Small | Medium | Large
 
-type Enemy =  GameObject {}
+type Enemy =  GameObject {size:EnemyType}
 
 data GameState = Play | NewStage | NewRound | GameOver | Menu
 
@@ -30,7 +30,7 @@ defaultPlayer : Player
 defaultPlayer = {x = 0, y = 0, vx = 0, vy = 0, angle = 0, rev = False}
 
 defaultEnemy : Enemy
-defaultEnemy = {x = 0, y = 0, vx = 50, vy = 50, angle = 0, rev = False}
+defaultEnemy = {x = 0, y = 0, vx = 50, vy = 50, angle = 0, rev = False, size = Large}
 
 
 delta : Signal Time
@@ -136,10 +136,12 @@ movePlayer dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
 
 --Update functions
 stepEnemy : Surface -> Input -> Enemy -> Enemy
-stepEnemy surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as e) =
+stepEnemy surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,size} as e) =
   let angle' = if rev then angle + (dt * 50) else angle - (dt * 50)
-      e' = surface <| enemyMovement dt e
-  in  {e' | angle <- angle'}
+      e' = enemyMovement dt e
+      e'' = surface <| { e' - size }
+      e''' = { e'' | size = e.size }
+  in  { e''' | angle <- angle'}
 
 stepPlayer : Surface -> Input -> Player -> Player
 stepPlayer surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as p) =
