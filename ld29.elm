@@ -57,9 +57,11 @@ collideMobius : [Collision] -> Player -> Player
 collideMobius cols ({x,y,vx,vy,angle} as p) =
   let collidingH = abs x >= 365
       collidingV = abs y >= 265
-      doCol = doH cols || doV cols
-  in {p | x <- if (collidingH || collidingV) then -x else x
-        , y <- if (collidingV || collidingH) then -y else y
+      doV' = doV cols
+      doH' = doH cols
+      doMove = (collidingH && doH') || (collidingV && doV')
+  in {p | x <- if doMove then -x else x
+        , y <- if doMove then -y else y
         , vx <- if collidingV && doV cols then -vx else vx
         , vy <- if collidingH && doH cols then -vy else vy }
 
@@ -80,7 +82,7 @@ movePlayer dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
 
 stepPlayer : Input -> Player -> Player
 stepPlayer ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle} as p) =
-  let p' = collideRect [LeftRight] <| collideMobius [TopBottom] <| applyThrust (dy == 1) dt p
+  let p' = collideMobius [LeftRight] <| collideCyl [TopBottom] <| applyThrust (dy == 1) dt p
   in {p' | angle <- angle - (toFloat dx * dt * 100)}
  
 
