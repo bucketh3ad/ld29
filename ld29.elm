@@ -8,7 +8,7 @@ type Player = {x:Float, y:Float, vx:Float, vy:Float, angle:Float}
 
 data GameState = Play | NewStage | NewRound | GameOver | Menu
 
-data Collision = Horizontal | Vertical 
+data Collision = LeftRight | TopBottom
 
 type Game = {state:GameState, player:Player}
 
@@ -32,29 +32,36 @@ thrustFactor : Float
 thrustFactor = 2
 
 --UPDATE SECTION
+doV : [Collision] -> Bool
+doV cols = any (\n -> n == TopBottom) cols
 
-collideRect : Player -> Player
-collideRect ({x,y,vx,vy,angle} as p) =
+doH : [Collision] -> Bool
+doH cols = any (\n -> n == LeftRight) cols
+
+
+collideRect : [Collision] -> Player -> Player
+collideRect cols ({x,y,vx,vy,angle} as p) =
   let collidingH = abs x >= 335
       collidingV = abs y >= 235
-  in {p | vx <- if collidingH then -vx else vx
-        , vy <- if collidingV then -vy else vy }
+  in {p | vx <- if collidingH && doH cols then -vx else vx
+        , vy <- if collidingV && doV cols then -vy else vy }
         
-collideCyl : Player -> Player
-collideCyl ({x,y,vx,vy,angle} as p) =
+collideCyl : [Collision] -> Player -> Player
+collideCyl cols ({x,y,vx,vy,angle} as p) =
   let collidingH = abs x >= 365
       collidingV = abs y >= 265
-  in {p | x <- if collidingH then -x else x
-        , y <- if collidingV then -y else y }
+  in {p | x <- if collidingH && doH cols then -x else x
+        , y <- if collidingV && doV cols then -y else y }
         
-collideMobius : Player -> Player
-collideMobius ({x,y,vx,vy,angle} as p) =
+collideMobius : [Collision] -> Player -> Player
+collideMobius cols ({x,y,vx,vy,angle} as p) =
   let collidingH = abs x >= 365
       collidingV = abs y >= 265
-  in {p | x <- if collidingH || collidingV then -x else x
-        , y <- if collidingV || collidingH then -y else y
-        , vx <- if collidingV then -vx else vx
-        , vy <- if collidingH then -vy else vy }
+      doCol = doH cols || doV cols
+  in {p | x <- if (collidingH || collidingV) then -x else x
+        , y <- if (collidingV || collidingH) then -y else y
+        , vx <- if collidingV && doV cols then -vx else vx
+        , vy <- if collidingH && doH cols then -vy else vy }
 
 applyThrust : Bool -> Float -> Player -> Player
 applyThrust active dt ({x,y,vx,vy,angle} as p) =
@@ -73,7 +80,7 @@ movePlayer dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
 
 stepPlayer : Input -> Player -> Player
 stepPlayer ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle} as p) =
-  let p' = collideMobius <| applyThrust (dy == 1) dt p
+  let p' = collideRect [LeftRight] <| collideMobius [TopBottom] <| applyThrust (dy == 1) dt p
   in {p' | angle <- angle - (toFloat dx * dt * 100)}
  
 
