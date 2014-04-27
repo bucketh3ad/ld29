@@ -12,7 +12,7 @@ data EnemyType = Small | Medium | Large
 
 type Enemy =  GameObject {size:EnemyType}
 
-type Bullet = GameObject {age:Float}
+type Bullet = GameObject {age:Float,active:Bool}
 
 data GameState = Play | NewStage | NewRound | GameOver | Menu
 
@@ -36,7 +36,7 @@ defaultEnemy : Enemy
 defaultEnemy = {x = 0, y = 0, vx = 50, vy = 50, angle = 0, rev = False, size = Large}
 
 defaultBullet : Bullet
-defaultBullet = {x = 0, y = 0, vx = 0, vy = 0, angle = 0, rev = False, age = 0}
+defaultBullet = {x = 0, y = 0, vx = 0, vy = 0, angle = 0, rev = False, age = 0,active = False}
 
 
 delta : Signal Time
@@ -83,9 +83,15 @@ reflectAngle yaxis a =
 
 findDistance : Float -> Float -> Float -> Float -> Float
 findDistance ax ay bx by = 
-  let x' = abs (ax - bx)
-      y' = abs (ay- by)
+  let x' = ax - bx
+      y' = ay - by
   in sqrt (x'^2 + y'^2)
+  
+enemySize : EnemyType -> Float
+enemySize t =
+  if  |t == Small -> 18
+      |t == Medium -> 30
+      |t == Large -> 45
 
 --Surface definitions
 rectangle : Player -> Player
@@ -168,15 +174,18 @@ createBullet : Player -> Bullet
 createBullet ({x,y,vx,vy,angle,rev} as p) = 
   let vx' = -(sin (degrees angle) * 200)
       vy' = cos (degrees angle) * 200
-  in {x = p.x, y = p.y, vx = vx', vy = vy', angle = p.angle, rev = p.rev, age = 1}
+  in {x = p.x, y = p.y, vx = vx', vy = vy', angle = p.angle, rev = p.rev, age = 0, active = True}
 
 stepBullet : Surface -> Input -> Bullet -> Bullet
-stepBullet surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,age} as b) =
-  let age' = if age /= 0 && age <= 4 then age + dt else 0
+stepBullet surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,age,active} as b) =
+  let active' = active && age <= 4
+      age' = if active' then age + dt else 0
       b' = { b | x <- movePlayer dt x vx -outerXMax outerXMax
                , y <- movePlayer dt y vy -outerYMax outerYMax }
-      b'' = surface <| {b' - age}
-  in {b'' | age = age'}
+      b'' = {b' - age}
+      b''' = surface <| {b'' - active}
+      b'''' = {b''' | age = age'}
+  in { b'''' | active = active' }
 
 stepEnemy : Surface -> Input -> Enemy -> Enemy
 stepEnemy surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,size} as e) =
@@ -196,15 +205,17 @@ stepGame : Input -> Game -> Game
 stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemy,bullet} as g) =
   let stuck = abs player.x == outerXMax && abs player.y == outerYMax
       p' = if stuck then {player | x <- 0, y <-0 } else player
-      b' = if bullet.age == 0 && space
+      b' = if not bullet.active && space
              then createBullet player
              else stepBullet surface i bullet
-      bulCol = findDistance b'.x b'.y enemy.x enemy.y <= 10
+      bulCol = findDistance b'.x b'.y enemy.x enemy.y <= enemySize enemy.size
+      playerCol = findDistance p'.x p'.y enemy.x enemy.y <= enemySize enemy.size
       deadE = {enemy | x <- 0, y <- 0}
-      e' = if not bulCol then enemy else deadE
+      e' =  if not bulCol then enemy else deadE
   in {g | player <- stepPlayer surface i p'
         , enemy <- stepEnemy surface i e'
-        , bullet <- b'}
+        , bullet <- { b' | active <- if bulCol then False else b'.active }
+        , state <- if playerCol then GameOver else Play}
 
 gameState : Signal Game
 gameState = foldp stepGame defaultGame input
@@ -244,6 +255,9 @@ drawEnemy = group
   , ngon 6 25 |> outlined (solid white)
   , ngon 3 10 |> outlined (solid white)
   ]
+  
+prettyPrint : [Float] -> Form
+prettyPrint = toForm . centered . (Text.color white) . toText . show . map (\n -> truncate n)
 
 drawGame : Game -> Element
 drawGame ({state,player,surface,enemy,bullet} as game) =
@@ -255,11 +269,11 @@ drawGame ({state,player,surface,enemy,bullet} as game) =
     , drawEnemy 
       |> move (enemy.x, enemy.y)
       |> rotate (degrees enemy.angle)
-    , if bullet.age == 0 then toForm (spacer 1 1) else drawBullet
+    , if not bullet.active then toForm (spacer 1 1) else drawBullet
       |> move (bullet.x, bullet.y)
-    , toForm (show player |> toText |> Text.color white |> centered )
+    , prettyPrint [player.x,player.y,enemy.x,enemy.y]
       |> move (0, -100)
-    , toForm (show enemy |> toText |> Text.color white |> centered)
+    , toForm (show state |> toText |> Text.color white |> centered)
       |> move (0 , 100)
     , foreground
     ]
