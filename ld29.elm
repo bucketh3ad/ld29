@@ -81,6 +81,11 @@ reflectAngle yaxis a =
   if yaxis then -a
   else 180 - a
 
+findDistance : Float -> Float -> Float -> Float -> Float
+findDistance ax ay bx by = 
+  let x' = abs (ax - bx)
+      y' = abs (ay- by)
+  in sqrt (x'^2 + y'^2)
 
 --Surface definitions
 rectangle : Player -> Player
@@ -102,7 +107,7 @@ chaosphere : Player -> Player
 chaosphere = collideMobius [LeftRight,TopBottom]
 
 
---Collision functions
+--Border collision functions
 collideRect : [Collision] -> Player -> Player
 collideRect cols ({x,y,vx,vy,angle,rev} as p) =
   let collidingH = abs x >= innerXMax
@@ -167,7 +172,7 @@ createBullet ({x,y,vx,vy,angle,rev} as p) =
 
 stepBullet : Surface -> Input -> Bullet -> Bullet
 stepBullet surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,age} as b) =
-  let age' = if age /= 0 && age <= 5 then age + dt else 0
+  let age' = if age /= 0 && age <= 4 then age + dt else 0
       b' = { b | x <- movePlayer dt x vx -outerXMax outerXMax
                , y <- movePlayer dt y vy -outerYMax outerYMax }
       b'' = surface <| {b' - age}
@@ -194,8 +199,11 @@ stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemy,bullet} as g) =
       b' = if bullet.age == 0 && space
              then createBullet player
              else stepBullet surface i bullet
+      bulCol = findDistance b'.x b'.y enemy.x enemy.y <= 10
+      deadE = {enemy | x <- 0, y <- 0}
+      e' = if not bulCol then enemy else deadE
   in {g | player <- stepPlayer surface i p'
-        , enemy <- stepEnemy surface i enemy
+        , enemy <- stepEnemy surface i e'
         , bullet <- b'}
 
 gameState : Signal Game
