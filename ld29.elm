@@ -14,7 +14,7 @@ type Enemy =  GameObject {size:EnemyType}
 
 type Bullet = GameObject {age:Float,active:Bool}
 
-data GameState = Play | NewStage | NewRound | GameOver | Menu
+data GameState = Play | Win | Lose
 
 data Collision = LeftRight | TopBottom
 
@@ -214,22 +214,24 @@ stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemies,bullet} as g) =
       b' = if not bullet.active && space
              then createBullet player
              else stepBullet surface i bullet
-     -- bulCol = findDistance b'.x b'.y enemy.x enemy.y <= enemySize enemy.size
-     -- playerCol = findDistance p'.x p'.y enemy.x enemy.y <= enemySize enemy.size
-     -- deadE = {enemy | x <- 0, y <- 0}
-     -- e' =  if not bulCol then enemy else deadE
+      bulletCollision = if bullet.active then mapCollisions bullet enemies else (enemies,False)
+      b'' = if not (snd bulletCollision) then b'
+            else { b' | active <- False }
+      e' = fst bulletCollision
   in {g | player <- stepPlayer surface i p'
-        , enemies <- map (stepEnemy surface i) enemies
-        , bullet <- { b' | active <- b'.active }--if bulCol then False else b'.active }
-        , state <- NewStage} --if playerCol then GameOver else Play}
+        , enemies <- map (stepEnemy surface i) e'  
+        , bullet <- b''
+        , state <- if length e' == 0 then Win else Play }
         
 checkCollision : GameObject a -> Enemy -> Bool
 checkCollision obj e = findDistance e.x e.y obj.x obj.y <= enemySize e.size
 
-mapCollisions : GameObject a -> [Enemy] -> [(Enemy,Bool)]
+mapCollisions : GameObject a -> [Enemy] -> ([Enemy],Bool)
 mapCollisions obj es = 
   let bools = map (checkCollision obj) es
-    in  zip es bools
+      b' = any (\ n -> n == True) bools
+      es' = map fst <| filter (\ (n,m) -> not m ) (zip es bools)
+  in  (es',b')
 
 gameState : Signal Game
 gameState = foldp stepGame defaultGame input
@@ -291,9 +293,6 @@ drawGame ({state,player,surface,enemies,bullet} as game) =
       |> move (player.x, player.y)
       |> rotate (degrees player.angle)
     , drawEnemies enemies
-    --, drawEnemy 
-    --  |> move (enemy.x, enemy.y)
-    --  |> rotate (degrees enemy.angle)
     , if not bullet.active then toForm (spacer 1 1) else drawBullet
       |> move (bullet.x, bullet.y)
     , prettyPrint [player.x,player.y]--,enemy.x,enemy.y]
