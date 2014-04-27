@@ -14,32 +14,44 @@ type Enemy =  GameObject {size:EnemyType}
 
 type Bullet = GameObject {age:Float,active:Bool}
 
-data GameState = Play | Win | Lose | StartRound
+data GameState = Play | Win | Lose | Begin | Victory
 
 data Collision = LeftRight | TopBottom
 
 type Surface = Player -> Player
 
-type Game = {state:GameState, player:Player, surface:Surface, enemies:[Enemy], bullet:Bullet}
+data SurfaceType = Rectangle | Cylinder | Torus | Mobius | Klein | Chaosphere
+
+type Game = {state:GameState, player:Player, surface:SurfaceType, enemies:[Enemy], bullet:Bullet}
 
 defaultGame : Game
-defaultGame = { state = Play,
+defaultGame = { state = Begin,
                 player = defaultPlayer,
-                surface = klein,
-                enemies = [defaultEnemy,mediumEnemy,smallEnemy,{smallEnemy | x <- -100, y <- 100, vx <- 50, vy <- -50}],
+                surface = Rectangle,
+                enemies = testEnemies,
                 bullet = defaultBullet}
 
 defaultPlayer : Player
 defaultPlayer = {x = 0, y = 0, vx = 0, vy = 0, angle = 0, rev = False}
 
-defaultEnemy : Enemy
-defaultEnemy = {x = 100, y = 100, vx = 50, vy = 50, angle = 0, rev = False, size = Large}
+defaultEnemy1 : Enemy
+defaultEnemy1 = {x = 50, y = 50, vx = 50, vy = 50, angle = 0, rev = False, size = Large}
 
-mediumEnemy : Enemy
-mediumEnemy = {x = 100, y = -100, vx = -50, vy = -50, angle = 0, rev = False, size = Medium}
+defaultEnemy2 : Enemy
+defaultEnemy2 = {defaultEnemy1 | y  <- -50, vy <- -50}
 
-smallEnemy : Enemy
-smallEnemy = {x = -100, y = -100, vx = -50, vy = 50, angle = 0, rev = False, size = Small}
+defaultEnemy3 : Enemy
+defaultEnemy3 = {defaultEnemy2 | x <- -50, vx <- -50}
+
+defaultEnemy4 : Enemy
+defaultEnemy4 = {defaultEnemy3 | y <- 50, vy <- 50}
+
+defaultEnemies : [Enemy]
+defaultEnemies = [defaultEnemy1, defaultEnemy2, defaultEnemy3, defaultEnemy4]
+
+testEnemies : [Enemy]
+testEnemies = [defaultEnemy1]
+
 
 defaultBullet : Bullet
 defaultBullet = {x = 0, y = 0, vx = 0, vy = 0, angle = 0, rev = False, age = 0,active = False}
@@ -98,6 +110,25 @@ enemySize t =
   if  |t == Small -> 18
       |t == Medium -> 30
       |t == Large -> 45
+      
+nextSurface : SurfaceType -> SurfaceType
+nextSurface s =
+  if | s == Rectangle -> Cylinder
+     | s == Cylinder -> Mobius
+     | s == Mobius -> Torus
+     | s == Torus -> Klein
+     | s == Klein -> Chaosphere
+     | s == Chaosphere -> Rectangle
+     
+getSurface : SurfaceType -> Surface
+getSurface s =
+  if | s == Rectangle -> rectangle
+     | s == Cylinder -> cylinder
+     | s == Mobius -> mobius
+     | s == Torus -> torus
+     | s == Klein -> klein
+     | s == Chaosphere -> chaosphere
+     
 
 --Surface definitions
 rectangle : Player -> Player
@@ -218,7 +249,7 @@ createBullet ({x,y,vx,vy,angle,rev} as p) =
 
 stepBullet : Surface -> Input -> Bullet -> Bullet
 stepBullet surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,age,active} as b) =
-  let active' = active && age <= 4
+  let active' = active && age <= 2
       age' = if active' then age + dt else 0
       b' = { b | x <- movePlayer dt x vx -outerXMax outerXMax
                , y <- movePlayer dt y vy -outerYMax outerYMax }
@@ -255,16 +286,20 @@ stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemies,bullet} as g) =
       playerCollision = mapPlayerCollisions p' e'
       state' = if | length e' == 0 -> Win
                   | playerCollision -> Lose
-                  | otherwise -> Play
-      p'' = if state' == Play then stepPlayer surface i p' else p'
-      e'' = if | state' == Play -> map (stepEnemy surface i) e'
-               | state' == Win && space -> [defaultEnemy]
+                  | otherwise -> state
+      p'' = if | state' == Play -> stepPlayer (getSurface surface) i p'
+               | state' /= Play && space -> defaultPlayer
+               | otherwise -> p'
+      e'' = if | state' == Play -> map (stepEnemy (getSurface surface) i) e'
+               | state' /= Play && space -> testEnemies
                | otherwise -> e'
-      b''' = if state' == Play then stepBullet surface i b'' else { b'' | active <- False }
-      state'' = if state /= Play && space then Play else state'
+      b''' = if state' == Play then stepBullet (getSurface surface) i b'' else { b'' | active <- False }
+      surface' = if state' == Win && space then nextSurface surface else surface
+      state'' = if state' /= Play && space then Play else state'
   in {g | player <- p''
         , enemies <- e''  
         , bullet <- b'''
+        , surface <- surface'
         , state <- state'' }
 
 gameState : Signal Game
@@ -328,6 +363,8 @@ drawGame ({state,player,surface,enemies,bullet} as game) =
         |> move (0, -100)
       , toForm (show state |> toText |> Text.color white |> centered)
         |> move (0 , 100)
+      , toForm (show surface |> toText |> Text.color white |> centered)
+        |> move (0, -200)
       , foreground
       ]
 
