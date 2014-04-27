@@ -4,7 +4,13 @@ import Keyboard
 --MODELS AND INPUTS
 type Input = {space:Bool, dx:Int, dy:Int, dt:Time}
 
-type Player = {x:Float, y:Float, vx:Float, vy:Float, angle:Float, rev:Bool}
+type GameObject a = {a | x:Float, y:Float, vx:Float, vy:Float, angle:Float, rev:Bool}
+
+type Player = GameObject {}
+
+data EnemyType = Small | Medium | Large
+
+type Enemy =  GameObject {}
 
 data GameState = Play | NewStage | NewRound | GameOver | Menu
 
@@ -12,13 +18,19 @@ data Collision = LeftRight | TopBottom
 
 type Surface = Player -> Player
 
-type Game = {state:GameState, player:Player, surface:Surface}
+type Game = {state:GameState, player:Player, surface:Surface, enemy:Enemy}
 
 defaultGame : Game
-defaultGame = {state = Play, player = defaultPlayer, surface = rectangle}
+defaultGame = { state = Play,
+                player = defaultPlayer,
+                surface = klein,
+                enemy = defaultEnemy }
 
 defaultPlayer : Player
 defaultPlayer = {x = 0, y = 0, vx = 0, vy = 0, angle = 0, rev = False}
+
+defaultEnemy : Enemy
+defaultEnemy = {x = 0, y = 0, vx = 50, vy = 50, angle = 0, rev = False}
 
 
 delta : Signal Time
@@ -112,12 +124,23 @@ applyThrust active dt ({x,y,vx,vy,angle,rev} as p) =
         , vy <- vy'
         , x <- movePlayer dt x vx -365 365
         , y <- movePlayer dt y vy -265 265 }
-        
+
+enemyMovement : Float -> Enemy -> Enemy
+enemyMovement dt e = 
+  { e| x <- movePlayer dt e.x e.vx -365 365
+     , y <- movePlayer dt e.y e.vy -265 265 }
+
 movePlayer : Float -> Float -> Float -> Float -> Float -> Float
 movePlayer dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
 
 
 --Update functions
+stepEnemy : Surface -> Input -> Enemy -> Enemy
+stepEnemy surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as e) =
+  let angle' = if rev then angle + (dt * 50) else angle - (dt * 50)
+      e' = surface <| enemyMovement dt e
+  in  {e' | angle <- angle'}
+
 stepPlayer : Surface -> Input -> Player -> Player
 stepPlayer surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as p) =
   let p' = surface <| applyThrust (dy == 1) dt p
@@ -125,10 +148,11 @@ stepPlayer surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as p) =
   in {p' | angle <- p'.angle - (toFloat dx' * dt * 100)}
  
 stepGame : Input -> Game -> Game
-stepGame ({space,dx,dy,dt} as i) ({state,player,surface} as g) =
+stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemy} as g) =
   let stuck = abs player.x == 365 && abs player.y == 265 -- TRAPPED IN THE CHAOSPHERE
       p' = if stuck then {player | x <- 0, y <-0 } else player
-  in {g | player <- stepPlayer surface i p'}
+  in {g | player <- stepPlayer surface i p'
+        , enemy <- stepEnemy surface i enemy}
 
 gameState : Signal Game
 gameState = foldp stepGame defaultGame input
@@ -159,17 +183,27 @@ drawPlayer rev =
   , polygon [(0,15),(-10,-10),(10,-10)] |> outlined (solid white)
   ]
 
+drawEnemy : Form
+drawEnemy = group
+  [ ngon 12 40 |> outlined (solid white)
+  , ngon 6 25 |> outlined (solid white)
+  , ngon 3 10 |> outlined (solid white)
+  ]
+
 drawGame : Game -> Element
-drawGame ({state,player} as game) =
+drawGame ({state,player,surface,enemy} as game) =
   collage 800 600
     [ background
     , drawPlayer player.rev
       |> move (player.x, player.y)
       |> rotate (degrees player.angle)
-    , toForm (toText "A test" |> Text.color white|> centered)
-      |> move (0, 100)
+    , drawEnemy 
+      |> move (enemy.x, enemy.y)
+      |> rotate (degrees enemy.angle)
     , toForm (show player |> toText |> Text.color white |> centered )
       |> move (0, -100)
+    , toForm (show enemy |> toText |> Text.color white |> centered)
+      |> move (0 , 100)
     , foreground
     ]
 
