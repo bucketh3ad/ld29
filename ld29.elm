@@ -28,7 +28,7 @@ defaultGame : Game
 defaultGame = { state = Begin,
                 player = defaultPlayer,
                 surface = Rectangle,
-                enemies = testEnemies,
+                enemies = defaultEnemies,
                 bullet = defaultBullet}
 
 defaultPlayer : Player
@@ -291,11 +291,14 @@ stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemies,bullet} as g) =
                | state' /= Play && space -> defaultPlayer
                | otherwise -> p'
       e'' = if | state' == Play -> map (stepEnemy (getSurface surface) i) e'
-               | state' /= Play && space -> testEnemies
+               | state' /= Play && space -> defaultEnemies
                | otherwise -> e'
       b''' = if state' == Play then stepBullet (getSurface surface) i b'' else { b'' | active <- False }
-      surface' = if state' == Win && space then nextSurface surface else surface
-      state'' = if state' /= Play && space then Play else state'
+      nextSurf = nextSurface surface
+      surface' = if state' == Win && space then nextSurf else surface
+      state'' = if | state' /= Play && space -> Play
+                   | nextSurf == Rectangle -> Victory
+                   | otherwise -> state'
   in {g | player <- p''
         , enemies <- e''  
         , bullet <- b'''
@@ -347,11 +350,18 @@ drawEnemies = group . map drawEnemy
 prettyPrint : [Float] -> Form
 prettyPrint = toForm . centered . (Text.color white) . toText . show . map (\n -> truncate n)
 
+drawVictory : Form
+drawVictory = "Congratulations! You have conquered every surface!"
+ |> toText |> Text.color white |> centered |> toForm
+
 drawGame : Game -> Element
 drawGame ({state,player,surface,enemies,bullet} as game) =
   let bullet' = if not bullet.active
                 then toForm (spacer 1 1)
                 else drawBullet |> move (bullet.x, bullet.y)
+      v' = if state == Victory
+           then drawVictory |> move (0,100)
+           else toForm (spacer 1 1)
   in collage 800 600
       [ background
       , drawPlayer player.rev
@@ -359,12 +369,13 @@ drawGame ({state,player,surface,enemies,bullet} as game) =
         |> rotate (degrees player.angle)
       , drawEnemies enemies
       , bullet'
-      , prettyPrint [player.x,player.y,player.vx,player.vy]
-        |> move (0, -100)
+      , v'
+      --, prettyPrint [player.x,player.y,player.vx,player.vy]
+      --  |> move (0, -100)
       , toForm (show state |> toText |> Text.color white |> centered)
-        |> move (0 , 100)
+        |> move (0,200)
       , toForm (show surface |> toText |> Text.color white |> centered)
-        |> move (0, -200)
+        |> move (0,-200)
       , foreground
       ]
 
