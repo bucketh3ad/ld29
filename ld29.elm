@@ -148,6 +148,40 @@ collideMobius cols ({x,y,vx,vy,angle,rev} as p) =
         , angle <- if doMove then reflectAngle doV' angle else angle
         , rev <- if doMove then not rev else rev}
 
+--Object collision functions
+checkCollision : GameObject a -> Enemy -> Bool
+checkCollision obj e = findDistance e.x e.y obj.x obj.y <= enemySize e.size
+
+mapPlayerCollisions : Player -> [Enemy] -> Bool
+mapPlayerCollisions p es =
+  let bools = map (checkCollision p) es
+  in any (\ n -> n) bools
+
+mapBulletCollisions : Bullet -> [Enemy] -> ([Enemy],Bool)
+mapBulletCollisions b es = 
+  let bools = map (checkCollision b) es
+      b' = any (\ n -> n) bools
+      es' = concat <| map handleBulletCollision (zip es bools)
+  in  (es',b')
+  
+handleBulletCollision : (Enemy,Bool) -> [Enemy]
+handleBulletCollision (e,b) =
+  if | b && e.size == Small -> []
+     | b -> splitEnemy e
+     | otherwise -> [e]
+     
+splitEnemy : Enemy -> [Enemy]
+splitEnemy e = 
+  let newsize = if e.size == Large then Medium else Small
+      dx = if e.vx > 0 then 15 else -15
+      dy = if e.vy > 0 then 15 else -15
+      e1 = {e | vx <- e.vx + dx
+              , vy <- e.vy - dy
+              , size <- newsize }
+      e2 = {e | vx <- e.vx - dx
+              , vy <- e.vy + dy
+              , size <- newsize }
+  in [e1,e2]
 
 --Movement functions
 applyThrust : Bool -> Float -> Player -> Player
@@ -214,43 +248,18 @@ stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemies,bullet} as g) =
       b' = if not bullet.active && space
              then createBullet player
              else stepBullet surface i bullet
-      bulletCollision = if bullet.active then mapCollisions bullet enemies else (enemies,False)
+      bulletCollision = if bullet.active then mapBulletCollisions bullet enemies else (enemies,False)
       b'' = if not (snd bulletCollision) then b'
             else { b' | active <- False }
       e' = fst bulletCollision
+      playerCollision = mapPlayerCollisions p' e'
+      state' = if | length e' == 0 -> Win
+                  | playerCollision -> Lose
+                  | otherwise -> Play
   in {g | player <- stepPlayer surface i p'
         , enemies <- map (stepEnemy surface i) e'  
         , bullet <- b''
-        , state <- if length e' == 0 then Win else Play }
-        
-checkCollision : GameObject a -> Enemy -> Bool
-checkCollision obj e = findDistance e.x e.y obj.x obj.y <= enemySize e.size
-
-mapCollisions : GameObject a -> [Enemy] -> ([Enemy],Bool)
-mapCollisions obj es = 
-  let bools = map (checkCollision obj) es
-      b' = any (\ n -> n == True) bools
-      es' = concat <| map handleBulletCollision (zip es bools)
-  in  (es',b')
-  
-handleBulletCollision : (Enemy,Bool) -> [Enemy]
-handleBulletCollision (e,b) =
-  if | b && e.size == Small -> [] --Make two mediums
-     | b -> splitEnemy e
-     | otherwise -> [e]
-     
-splitEnemy : Enemy -> [Enemy]
-splitEnemy e = 
-  let newsize = if e.size == Large then Medium else Small
-      dx = if e.vx > 0 then 15 else -15
-      dy = if e.vy > 0 then 15 else -15
-      e1 = {e | vx <- e.vx + dx
-              , vy <- e.vy - dy
-              , size <- newsize }
-      e2 = {e | vx <- e.vx - dx
-              , vy <- e.vy + dy
-              , size <- newsize }
-  in [e1,e2]
+        , state <- state' }
 
 gameState : Signal Game
 gameState = foldp stepGame defaultGame input
@@ -283,43 +292,38 @@ drawPlayer rev =
 
 drawBullet : Form
 drawBullet = circle 5 |> filled white
-
-drawEnemy : Form
-drawEnemy = group
-  [ ngon 12 35 |> outlined (solid white)
-  , ngon 6 25 |> outlined (solid white)
-  , ngon 3 10 |> outlined (solid white)
-  ]
   
-drawE : Enemy -> Form
-drawE e =
+drawEnemy : Enemy -> Form
+drawEnemy e =
   let e' = if | e.size == Large -> ngon 12 35 |> outlined (solid white)
               | e.size == Medium -> ngon 6 25 |> outlined (solid white)
               | e.size == Small -> ngon 3 10 |> outlined (solid white)
   in e' |> move (e.x,e.y) |> rotate (degrees e.angle)
   
 drawEnemies : [Enemy] -> Form
-drawEnemies = group . map drawE
+drawEnemies = group . map drawEnemy
   
 prettyPrint : [Float] -> Form
 prettyPrint = toForm . centered . (Text.color white) . toText . show . map (\n -> truncate n)
 
 drawGame : Game -> Element
 drawGame ({state,player,surface,enemies,bullet} as game) =
-  collage 800 600
-    [ background
-    , drawPlayer player.rev
-      |> move (player.x, player.y)
-      |> rotate (degrees player.angle)
-    , drawEnemies enemies
-    , if not bullet.active then toForm (spacer 1 1) else drawBullet
-      |> move (bullet.x, bullet.y)
-    , prettyPrint [player.x,player.y]--,enemy.x,enemy.y]
-      |> move (0, -100)
-    , toForm (show state |> toText |> Text.color white |> centered)
-      |> move (0 , 100)
-    , foreground
-    ]
+  let bullet' = if not bullet.active
+                then toForm (spacer 1 1)
+                else drawBullet |> move (bullet.x, bullet.y)
+  in collage 800 600
+      [ background
+      , drawPlayer player.rev
+        |> move (player.x, player.y)
+        |> rotate (degrees player.angle)
+      , drawEnemies enemies
+      , bullet'
+      , prettyPrint [player.x,player.y,player.vx,player.vy]
+        |> move (0, -100)
+      , toForm (show state |> toText |> Text.color white |> centered)
+        |> move (0 , 100)
+      , foreground
+      ]
 
 --MAIN GAME LOOP
 main : Signal Element
