@@ -47,13 +47,13 @@ thrustFactor : Float
 thrustFactor = 2
 
 outerXMax : Float
-outerXMax = 365
+outerXMax = 380
 
 innerXMax : Float
 innerXMax = 335
 
 outerYMax : Float
-outerYMax = 265
+outerYMax = 280
 
 innerYMax : Float
 innerYMax = 235
@@ -205,7 +205,7 @@ drawPlayer rev =
 
 drawEnemy : Form
 drawEnemy = group
-  [ ngon 12 40 |> outlined (solid white)
+  [ ngon 12 35 |> outlined (solid white)
   , ngon 6 25 |> outlined (solid white)
   , ngon 3 10 |> outlined (solid white)
   ]
