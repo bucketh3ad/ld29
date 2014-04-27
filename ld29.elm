@@ -155,10 +155,12 @@ collideRect : [Collision] -> Player -> Player
 collideRect cols ({x,y,vx,vy,angle,rev} as p) =
   let collidingH = abs x >= innerXMax
       collidingV = abs y >= innerYMax
-  in {p | vx <- if collidingH && doH cols then -vx else vx
-        , vy <- if collidingV && doV cols then -vy else vy
-        , x <- clamp -innerXMax innerXMax x
-        , y <- clamp -innerYMax innerYMax y}
+      doH' = collidingH && doH cols
+      doV' = collidingV && doV cols
+  in {p | vx <- if doH' then -vx else vx
+        , vy <- if doV' then -vy else vy
+        , x <- if doH' then clamp -innerXMax innerXMax x else x
+        , y <- if doV' then clamp -innerYMax innerYMax y else y }
         
 collideCyl : [Collision] -> Player -> Player
 collideCyl cols ({x,y,vx,vy,angle,rev} as p) =
