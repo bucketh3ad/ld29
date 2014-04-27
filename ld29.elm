@@ -10,10 +10,12 @@ data GameState = Play | NewStage | NewRound | GameOver | Menu
 
 data Collision = LeftRight | TopBottom
 
-type Game = {state:GameState, player:Player}
+type Surface = Player -> Player
+
+type Game = {state:GameState, player:Player, surface:Surface}
 
 defaultGame : Game
-defaultGame = {state = Play, player = defaultPlayer}
+defaultGame = {state = Play, player = defaultPlayer, surface = rectangle}
 
 defaultPlayer : Player
 defaultPlayer = {x = 0, y = 0, vx = 0, vy = 0, angle = 0, rev = False}
@@ -28,10 +30,14 @@ input = sampleOn delta (Input <~ Keyboard.space
                                ~ lift .y Keyboard.arrows
                                ~ delta)
 
+--Constants
 thrustFactor : Float
 thrustFactor = 2
 
+
 --UPDATE SECTION
+
+--Helper functions
 doV : [Collision] -> Bool
 doV cols = any (\n -> n == TopBottom) cols
 
@@ -40,9 +46,11 @@ doH cols = any (\n -> n == LeftRight) cols
         
 reflectAngle : Bool -> Float -> Float
 reflectAngle yaxis a =
-  if yaxis then -( 360 + a)
-  else ( 180 -  a)
-  
+  if yaxis then -a
+  else 180 - a
+
+
+--Surface definitions
 rectangle : Player -> Player
 rectangle = collideRect [LeftRight,TopBottom]
 
@@ -62,6 +70,7 @@ chaosphere : Player -> Player
 chaosphere = collideMobius [LeftRight,TopBottom]
 
 
+--Collision functions
 collideRect : [Collision] -> Player -> Player
 collideRect cols ({x,y,vx,vy,angle,rev} as p) =
   let collidingH = abs x >= 335
@@ -90,6 +99,8 @@ collideMobius cols ({x,y,vx,vy,angle,rev} as p) =
         , angle <- if doMove then reflectAngle doV' angle else angle
         , rev <- if doMove then not rev else rev}
 
+
+--Movement functions
 applyThrust : Bool -> Float -> Player -> Player
 applyThrust active dt ({x,y,vx,vy,angle,rev} as p) =
   let 
@@ -105,19 +116,19 @@ applyThrust active dt ({x,y,vx,vy,angle,rev} as p) =
 movePlayer : Float -> Float -> Float -> Float -> Float -> Float
 movePlayer dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
 
-stepPlayer : Input -> Player -> Player
-stepPlayer ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as p) =
-  let p' = mobius <| applyThrust (dy == 1) dt p
+
+--Update functions
+stepPlayer : Surface -> Input -> Player -> Player
+stepPlayer surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as p) =
+  let p' = surface <| applyThrust (dy == 1) dt p
       dx' = if rev then -dx else dx
   in {p' | angle <- p'.angle - (toFloat dx' * dt * 100)}
  
-
 stepGame : Input -> Game -> Game
-stepGame ({space,dx,dy,dt} as i) ({state,player} as g) =
+stepGame ({space,dx,dy,dt} as i) ({state,player,surface} as g) =
   let stuck = abs player.x == 365 && abs player.y == 265 -- TRAPPED IN THE CHAOSPHERE
       p' = if stuck then {player | x <- 0, y <-0 } else player
-  in {g | player <- stepPlayer i p'}
-
+  in {g | player <- stepPlayer surface i p'}
 
 gameState : Signal Game
 gameState = foldp stepGame defaultGame input
