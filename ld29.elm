@@ -156,7 +156,9 @@ collideRect cols ({x,y,vx,vy,angle,rev} as p) =
   let collidingH = abs x >= innerXMax
       collidingV = abs y >= innerYMax
   in {p | vx <- if collidingH && doH cols then -vx else vx
-        , vy <- if collidingV && doV cols then -vy else vy }
+        , vy <- if collidingV && doV cols then -vy else vy
+        , x <- clamp -innerXMax innerXMax x
+        , y <- clamp -innerYMax innerYMax y}
         
 collideCyl : [Collision] -> Player -> Player
 collideCyl cols ({x,y,vx,vy,angle,rev} as p) =
@@ -297,7 +299,7 @@ stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemies,bullet} as g) =
       nextSurf = nextSurface surface
       surface' = if state' == Win && space then nextSurf else surface
       state'' = if | state' /= Play && space -> Play
-                   | nextSurf == Rectangle -> Victory
+                   | state' == Win && surface' == Chaosphere -> Victory
                    | otherwise -> state'
   in {g | player <- p''
         , enemies <- e''  
@@ -347,12 +349,19 @@ drawEnemy e =
 drawEnemies : [Enemy] -> Form
 drawEnemies = group . map drawEnemy
   
-prettyPrint : [Float] -> Form
-prettyPrint = toForm . centered . (Text.color white) . toText . show . map (\n -> truncate n)
+prettyStats : [Float] -> Form
+prettyStats = formatText . show . map (\n -> truncate n)
+
+formatText : String -> Form
+formatText = toForm . centered . (Text.color white) . toText
 
 drawVictory : Form
 drawVictory = "Congratulations! You have conquered every surface!"
- |> toText |> Text.color white |> centered |> toForm
+ |> formatText
+ 
+drawInstruction : Form
+drawInstruction = "Press SPACE to start. Control with the arrow keys"
+ |> formatText
 
 drawGame : Game -> Element
 drawGame ({state,player,surface,enemies,bullet} as game) =
@@ -362,6 +371,9 @@ drawGame ({state,player,surface,enemies,bullet} as game) =
       v' = if state == Victory
            then drawVictory |> move (0,100)
            else toForm (spacer 1 1)
+      i' = if state == Begin
+           then drawInstruction |> move (0,100)
+           else toForm (spacer 1 1)
   in collage 800 600
       [ background
       , drawPlayer player.rev
@@ -370,11 +382,12 @@ drawGame ({state,player,surface,enemies,bullet} as game) =
       , drawEnemies enemies
       , bullet'
       , v'
-      --, prettyPrint [player.x,player.y,player.vx,player.vy]
+      , i'
+      --, prettyStats [player.x,player.y,player.vx,player.vy]
       --  |> move (0, -100)
-      , toForm (show state |> toText |> Text.color white |> centered)
+      , show state |> formatText
         |> move (0,200)
-      , toForm (show surface |> toText |> Text.color white |> centered)
+      , show surface |> formatText
         |> move (0,-200)
       , foreground
       ]
