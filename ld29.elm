@@ -14,7 +14,7 @@ type Enemy =  GameObject {size:EnemyType}
 
 type Bullet = GameObject {age:Float,active:Bool}
 
-data GameState = Play | Win | Lose
+data GameState = Play | Win | Lose | StartRound
 
 data Collision = LeftRight | TopBottom
 
@@ -26,20 +26,20 @@ defaultGame : Game
 defaultGame = { state = Play,
                 player = defaultPlayer,
                 surface = klein,
-                enemies = [defaultEnemy,mediumEnemy,smallEnemy,{smallEnemy | vx <- 50, vy <- -50}],
+                enemies = [defaultEnemy,mediumEnemy,smallEnemy,{smallEnemy | x <- -100, y <- 100, vx <- 50, vy <- -50}],
                 bullet = defaultBullet}
 
 defaultPlayer : Player
 defaultPlayer = {x = 0, y = 0, vx = 0, vy = 0, angle = 0, rev = False}
 
 defaultEnemy : Enemy
-defaultEnemy = {x = 0, y = 0, vx = 50, vy = 50, angle = 0, rev = False, size = Large}
+defaultEnemy = {x = 100, y = 100, vx = 50, vy = 50, angle = 0, rev = False, size = Large}
 
 mediumEnemy : Enemy
-mediumEnemy = {x = 0, y = 0, vx = -50, vy = -50, angle = 0, rev = False, size = Medium}
+mediumEnemy = {x = 100, y = -100, vx = -50, vy = -50, angle = 0, rev = False, size = Medium}
 
 smallEnemy : Enemy
-smallEnemy = {x = 0, y = 0, vx = -50, vy = 50, angle = 0, rev = False, size = Small}
+smallEnemy = {x = -100, y = -100, vx = -50, vy = 50, angle = 0, rev = False, size = Small}
 
 defaultBullet : Bullet
 defaultBullet = {x = 0, y = 0, vx = 0, vy = 0, angle = 0, rev = False, age = 0,active = False}
@@ -256,10 +256,13 @@ stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemies,bullet} as g) =
       state' = if | length e' == 0 -> Win
                   | playerCollision -> Lose
                   | otherwise -> Play
-  in {g | player <- stepPlayer surface i p'
-        , enemies <- map (stepEnemy surface i) e'  
+      p'' = if state' == Play then stepPlayer surface i p' else p'
+      e'' = if state' == Play then map (stepEnemy surface i) e' else e'
+      state'' = if state /= Play && space then Play else state'
+  in {g | player <- p''
+        , enemies <- e''  
         , bullet <- b''
-        , state <- state' }
+        , state <- state'' }
 
 gameState : Signal Game
 gameState = foldp stepGame defaultGame input
