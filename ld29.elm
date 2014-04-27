@@ -230,8 +230,27 @@ mapCollisions : GameObject a -> [Enemy] -> ([Enemy],Bool)
 mapCollisions obj es = 
   let bools = map (checkCollision obj) es
       b' = any (\ n -> n == True) bools
-      es' = map fst <| filter (\ (n,m) -> not m ) (zip es bools)
+      es' = concat <| map handleBulletCollision (zip es bools)
   in  (es',b')
+  
+handleBulletCollision : (Enemy,Bool) -> [Enemy]
+handleBulletCollision (e,b) =
+  if | b && e.size == Small -> [] --Make two mediums
+     | b -> splitEnemy e
+     | otherwise -> [e]
+     
+splitEnemy : Enemy -> [Enemy]
+splitEnemy e = 
+  let newsize = if e.size == Large then Medium else Small
+      dx = if e.vx > 0 then 15 else -15
+      dy = if e.vy > 0 then 15 else -15
+      e1 = {e | vx <- e.vx + dx
+              , vy <- e.vy - dy
+              , size <- newsize }
+      e2 = {e | vx <- e.vx - dx
+              , vy <- e.vy + dy
+              , size <- newsize }
+  in [e1,e2]
 
 gameState : Signal Game
 gameState = foldp stepGame defaultGame input
