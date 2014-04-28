@@ -1,5 +1,4 @@
-<!DOCTYPE HTML>
-<html><head><meta charset="UTF-8"><title>ld29</title><script type="text/javascript" src="C:\Program Files (x86)\Elm Platform\0.12\share\elm-runtime.js"></script><script type="text/javascript">Elm.Main = Elm.Main || {};
+Elm.Main = Elm.Main || {};
 Elm.Main.make = function (_elm) {
    "use strict";
    _elm.Main = _elm.Main || {};
@@ -799,4 +798,4 @@ Elm.Main.make = function (_elm) {
                       ,GameObject: GameObject
                       ,Game: Game};
    return _elm.Main.values;
-};</script></head><body><script type="text/javascript">Elm.fullscreen(Elm.Main)</script><noscript></noscript></body></html>
+};
