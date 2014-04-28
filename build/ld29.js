@@ -1,15 +1,15 @@
-Elm.Main = Elm.Main || {};
-Elm.Main.make = function (_elm) {
+Elm.Klein = Elm.Klein || {};
+Elm.Klein.make = function (_elm) {
    "use strict";
-   _elm.Main = _elm.Main || {};
-   if (_elm.Main.values)
-   return _elm.Main.values;
+   _elm.Klein = _elm.Klein || {};
+   if (_elm.Klein.values)
+   return _elm.Klein.values;
    var _N = Elm.Native,
    _U = _N.Utils.make(_elm),
    _L = _N.List.make(_elm),
    _E = _N.Error.make(_elm),
    _J = _N.JavaScript.make(_elm),
-   $moduleName = "Main";
+   $moduleName = "Klein";
    var Basics = Elm.Basics.make(_elm);
    var Color = Elm.Color.make(_elm);
    var Graphics = Graphics || {};
@@ -302,7 +302,7 @@ Elm.Main.make = function (_elm) {
       Torus) ? Klein : _U.eq(s,
       Klein) ? Chaosphere : _U.eq(s,
       Chaosphere) ? Rectangle : _E.If($moduleName,
-      "between lines 116 and 121");
+      "between lines 118 and 123");
    };
    var TopBottom = {ctor: "TopBottom"};
    var doV = function (cols) {
@@ -416,7 +416,7 @@ Elm.Main.make = function (_elm) {
       Torus) ? torus : _U.eq(s,
       Klein) ? klein : _U.eq(s,
       Chaosphere) ? chaosphere : _E.If($moduleName,
-      "between lines 125 and 130");
+      "between lines 127 and 132");
    };
    var Victory = {ctor: "Victory"};
    var Begin = {ctor: "Begin"};
@@ -462,7 +462,7 @@ Elm.Main.make = function (_elm) {
       Small) ? 18 : _U.eq(t,
       Medium) ? 30 : _U.eq(t,
       Large) ? 45 : _E.If($moduleName,
-      "between lines 110 and 112");
+      "between lines 112 and 114");
    };
    var checkCollision = F2(function (obj,
    e) {
@@ -514,7 +514,7 @@ Elm.Main.make = function (_elm) {
             return _v22._1 && _U.eq(_v22._0.size,
               Small) ? _J.toList([]) : _v22._1 ? splitEnemy(_v22._0) : _J.toList([_v22._0]);}
          _E.Case($moduleName,
-         "between lines 204 and 206");
+         "between lines 206 and 208");
       }();
    };
    var mapBulletCollisions = F2(function (b,
@@ -614,7 +614,7 @@ Elm.Main.make = function (_elm) {
          Small) ? Graphics.Collage.outlined(Graphics.Collage.solid(Color.white))(A2(Graphics.Collage.ngon,
          3,
          10)) : _E.If($moduleName,
-         "between lines 346 and 348");
+         "between lines 348 and 350");
          return Graphics.Collage.rotate(Basics.degrees(e.angle))(Graphics.Collage.move({ctor: "_Tuple2"
                                                                                        ,_0: e.x
                                                                                        ,_1: e.y})(e$));
@@ -719,83 +719,83 @@ Elm.Main.make = function (_elm) {
    var main = A2(Signal.lift,
    drawGame,
    gameState);
-   _elm.Main.values = {_op: _op
-                      ,defaultGame: defaultGame
-                      ,defaultPlayer: defaultPlayer
-                      ,defaultEnemy1: defaultEnemy1
-                      ,defaultEnemy2: defaultEnemy2
-                      ,defaultEnemy3: defaultEnemy3
-                      ,defaultEnemy4: defaultEnemy4
-                      ,defaultEnemies: defaultEnemies
-                      ,testEnemies: testEnemies
-                      ,defaultBullet: defaultBullet
-                      ,delta: delta
-                      ,input: input
-                      ,thrustFactor: thrustFactor
-                      ,outerXMax: outerXMax
-                      ,innerXMax: innerXMax
-                      ,outerYMax: outerYMax
-                      ,innerYMax: innerYMax
-                      ,doV: doV
-                      ,doH: doH
-                      ,reflectAngle: reflectAngle
-                      ,findDistance: findDistance
-                      ,enemySize: enemySize
-                      ,nextSurface: nextSurface
-                      ,getSurface: getSurface
-                      ,rectangle: rectangle
-                      ,cylinder: cylinder
-                      ,mobius: mobius
-                      ,torus: torus
-                      ,klein: klein
-                      ,chaosphere: chaosphere
-                      ,collideRect: collideRect
-                      ,collideCyl: collideCyl
-                      ,collideMobius: collideMobius
-                      ,checkCollision: checkCollision
-                      ,mapPlayerCollisions: mapPlayerCollisions
-                      ,mapBulletCollisions: mapBulletCollisions
-                      ,handleBulletCollision: handleBulletCollision
-                      ,splitEnemy: splitEnemy
-                      ,applyThrust: applyThrust
-                      ,enemyMovement: enemyMovement
-                      ,movePlayer: movePlayer
-                      ,createBullet: createBullet
-                      ,stepBullet: stepBullet
-                      ,stepEnemy: stepEnemy
-                      ,stepPlayer: stepPlayer
-                      ,stepGame: stepGame
-                      ,gameState: gameState
-                      ,background: background
-                      ,foreground: foreground
-                      ,drawPlayer: drawPlayer
-                      ,drawBullet: drawBullet
-                      ,drawEnemy: drawEnemy
-                      ,drawEnemies: drawEnemies
-                      ,prettyStats: prettyStats
-                      ,formatText: formatText
-                      ,drawVictory: drawVictory
-                      ,drawInstruction: drawInstruction
-                      ,drawGame: drawGame
-                      ,main: main
-                      ,Small: Small
-                      ,Medium: Medium
-                      ,Large: Large
-                      ,Play: Play
-                      ,Win: Win
-                      ,Lose: Lose
-                      ,Begin: Begin
-                      ,Victory: Victory
-                      ,LeftRight: LeftRight
-                      ,TopBottom: TopBottom
-                      ,Rectangle: Rectangle
-                      ,Cylinder: Cylinder
-                      ,Torus: Torus
-                      ,Mobius: Mobius
-                      ,Klein: Klein
-                      ,Chaosphere: Chaosphere
-                      ,Input: Input
-                      ,GameObject: GameObject
-                      ,Game: Game};
-   return _elm.Main.values;
+   _elm.Klein.values = {_op: _op
+                       ,defaultGame: defaultGame
+                       ,defaultPlayer: defaultPlayer
+                       ,defaultEnemy1: defaultEnemy1
+                       ,defaultEnemy2: defaultEnemy2
+                       ,defaultEnemy3: defaultEnemy3
+                       ,defaultEnemy4: defaultEnemy4
+                       ,defaultEnemies: defaultEnemies
+                       ,testEnemies: testEnemies
+                       ,defaultBullet: defaultBullet
+                       ,delta: delta
+                       ,input: input
+                       ,thrustFactor: thrustFactor
+                       ,outerXMax: outerXMax
+                       ,innerXMax: innerXMax
+                       ,outerYMax: outerYMax
+                       ,innerYMax: innerYMax
+                       ,doV: doV
+                       ,doH: doH
+                       ,reflectAngle: reflectAngle
+                       ,findDistance: findDistance
+                       ,enemySize: enemySize
+                       ,nextSurface: nextSurface
+                       ,getSurface: getSurface
+                       ,rectangle: rectangle
+                       ,cylinder: cylinder
+                       ,mobius: mobius
+                       ,torus: torus
+                       ,klein: klein
+                       ,chaosphere: chaosphere
+                       ,collideRect: collideRect
+                       ,collideCyl: collideCyl
+                       ,collideMobius: collideMobius
+                       ,checkCollision: checkCollision
+                       ,mapPlayerCollisions: mapPlayerCollisions
+                       ,mapBulletCollisions: mapBulletCollisions
+                       ,handleBulletCollision: handleBulletCollision
+                       ,splitEnemy: splitEnemy
+                       ,applyThrust: applyThrust
+                       ,enemyMovement: enemyMovement
+                       ,movePlayer: movePlayer
+                       ,createBullet: createBullet
+                       ,stepBullet: stepBullet
+                       ,stepEnemy: stepEnemy
+                       ,stepPlayer: stepPlayer
+                       ,stepGame: stepGame
+                       ,gameState: gameState
+                       ,background: background
+                       ,foreground: foreground
+                       ,drawPlayer: drawPlayer
+                       ,drawBullet: drawBullet
+                       ,drawEnemy: drawEnemy
+                       ,drawEnemies: drawEnemies
+                       ,prettyStats: prettyStats
+                       ,formatText: formatText
+                       ,drawVictory: drawVictory
+                       ,drawInstruction: drawInstruction
+                       ,drawGame: drawGame
+                       ,main: main
+                       ,Small: Small
+                       ,Medium: Medium
+                       ,Large: Large
+                       ,Play: Play
+                       ,Win: Win
+                       ,Lose: Lose
+                       ,Begin: Begin
+                       ,Victory: Victory
+                       ,LeftRight: LeftRight
+                       ,TopBottom: TopBottom
+                       ,Rectangle: Rectangle
+                       ,Cylinder: Cylinder
+                       ,Torus: Torus
+                       ,Mobius: Mobius
+                       ,Klein: Klein
+                       ,Chaosphere: Chaosphere
+                       ,Input: Input
+                       ,GameObject: GameObject
+                       ,Game: Game};
+   return _elm.Klein.values;
 };
