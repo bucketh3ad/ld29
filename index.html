@@ -1,14 +1,20 @@
-<html> 
-  <head> 
-    <script src="jquery.js"></script> 
-    <script> 
-    $(function(){
-      $("#includedContent").load("build/ld29.html"); 
-    });
-    </script> 
-  </head> 
-
-  <body> 
-     <div id="includedContent"></div>
-  </body> 
-</html>
+<!DOCTYPE HTML>
+<!-- MyModule.html -->
+<html>
+<head><meta charset="UTF-8">
+  <title>Ludum Dare 29</title>
+  <!-- elm-runtime.js and js compiled modules -->
+  <script type="text/javascript" 
+          src="http://elm-lang.org/elm-runtime.js"></script>
+  <script type="text/javascript" src="build/ld29.js"></script>
+</head>
+<body>
+  <div id="myId" style="width:800;height:600;"></div><!-- Elm container must be a "div" element and must be empty -->
+  <script type="text/javascript">
+ 
+var myContainer = document.getElementById('myId') ;
+ 
+Elm.embed(Elm.MyModule, myContainer) ;
+  </script>
+  <noscript>Javascript is not enabled</noscript>
+</body></html>
