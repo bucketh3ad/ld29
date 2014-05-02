@@ -8,7 +8,6 @@ Elm.Klein.make = function (_elm) {
    _U = _N.Utils.make(_elm),
    _L = _N.List.make(_elm),
    _E = _N.Error.make(_elm),
-   _J = _N.JavaScript.make(_elm),
    $moduleName = "Klein";
    var Basics = Elm.Basics.make(_elm);
    var Color = Elm.Color.make(_elm);
@@ -19,6 +18,8 @@ Elm.Klein.make = function (_elm) {
    var Keyboard = Elm.Keyboard.make(_elm);
    var List = Elm.List.make(_elm);
    var Maybe = Elm.Maybe.make(_elm);
+   var Native = Native || {};
+   Native.Json = Elm.Native.Json.make(_elm);
    var Native = Native || {};
    Native.Ports = Elm.Native.Ports.make(_elm);
    var Signal = Elm.Signal.make(_elm);
@@ -40,43 +41,43 @@ Elm.Klein.make = function (_elm) {
    var drawPlayer = function (rev) {
       return function () {
          var x$ = rev ? 4 : -4;
-         return Graphics.Collage.group(_J.toList([Graphics.Collage.move({ctor: "_Tuple2"
-                                                                        ,_0: x$
-                                                                        ,_1: -6})(Graphics.Collage.filled(Color.darkBlue)(Graphics.Collage.circle(4)))
-                                                 ,Graphics.Collage.move({ctor: "_Tuple2"
-                                                                        ,_0: 0 - x$
-                                                                        ,_1: -6})(Graphics.Collage.filled(Color.red)(Graphics.Collage.circle(4)))
-                                                 ,Graphics.Collage.outlined(Graphics.Collage.solid(Color.white))(Graphics.Collage.polygon(_J.toList([{ctor: "_Tuple2"
-                                                                                                                                                     ,_0: 0
-                                                                                                                                                     ,_1: 15}
-                                                                                                                                                    ,{ctor: "_Tuple2"
-                                                                                                                                                     ,_0: -10
-                                                                                                                                                     ,_1: -10}
-                                                                                                                                                    ,{ctor: "_Tuple2"
-                                                                                                                                                     ,_0: 10
-                                                                                                                                                     ,_1: -10}])))]));
+         return Graphics.Collage.group(_L.fromArray([Graphics.Collage.move({ctor: "_Tuple2"
+                                                                           ,_0: x$
+                                                                           ,_1: -6})(Graphics.Collage.filled(Color.darkBlue)(Graphics.Collage.circle(4)))
+                                                    ,Graphics.Collage.move({ctor: "_Tuple2"
+                                                                           ,_0: 0 - x$
+                                                                           ,_1: -6})(Graphics.Collage.filled(Color.red)(Graphics.Collage.circle(4)))
+                                                    ,Graphics.Collage.outlined(Graphics.Collage.solid(Color.white))(Graphics.Collage.polygon(_L.fromArray([{ctor: "_Tuple2"
+                                                                                                                                                           ,_0: 0
+                                                                                                                                                           ,_1: 15}
+                                                                                                                                                          ,{ctor: "_Tuple2"
+                                                                                                                                                           ,_0: -10
+                                                                                                                                                           ,_1: -10}
+                                                                                                                                                          ,{ctor: "_Tuple2"
+                                                                                                                                                           ,_0: 10
+                                                                                                                                                           ,_1: -10}])))]));
       }();
    };
-   var foreground = Graphics.Collage.group(_J.toList([Graphics.Collage.move({ctor: "_Tuple2"
-                                                                            ,_0: -375
-                                                                            ,_1: 0})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
-                                                     50,
-                                                     600)))
-                                                     ,Graphics.Collage.move({ctor: "_Tuple2"
-                                                                            ,_0: 375
-                                                                            ,_1: 0})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
-                                                     50,
-                                                     600)))
-                                                     ,Graphics.Collage.move({ctor: "_Tuple2"
-                                                                            ,_0: 0
-                                                                            ,_1: -275})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
-                                                     800,
-                                                     50)))
-                                                     ,Graphics.Collage.move({ctor: "_Tuple2"
-                                                                            ,_0: 0
-                                                                            ,_1: 275})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
-                                                     800,
-                                                     50)))]));
+   var foreground = Graphics.Collage.group(_L.fromArray([Graphics.Collage.move({ctor: "_Tuple2"
+                                                                               ,_0: -375
+                                                                               ,_1: 0})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
+                                                        50,
+                                                        600)))
+                                                        ,Graphics.Collage.move({ctor: "_Tuple2"
+                                                                               ,_0: 375
+                                                                               ,_1: 0})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
+                                                        50,
+                                                        600)))
+                                                        ,Graphics.Collage.move({ctor: "_Tuple2"
+                                                                               ,_0: 0
+                                                                               ,_1: -275})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
+                                                        800,
+                                                        50)))
+                                                        ,Graphics.Collage.move({ctor: "_Tuple2"
+                                                                               ,_0: 0
+                                                                               ,_1: 275})(Graphics.Collage.filled(Color.white)(A2(Graphics.Collage.rect,
+                                                        800,
+                                                        50)))]));
    var background = Graphics.Collage.filled(Color.black)(A2(Graphics.Collage.rect,
    800,
    600));
@@ -393,21 +394,21 @@ Elm.Klein.make = function (_elm) {
          }();
       }();
    });
-   var rectangle = collideRect(_J.toList([LeftRight
-                                         ,TopBottom]));
+   var rectangle = collideRect(_L.fromArray([LeftRight
+                                            ,TopBottom]));
    var cylinder = function ($) {
-      return collideCyl(_J.toList([LeftRight]))(collideRect(_J.toList([TopBottom]))($));
+      return collideCyl(_L.fromArray([LeftRight]))(collideRect(_L.fromArray([TopBottom]))($));
    };
    var mobius = function ($) {
-      return collideMobius(_J.toList([LeftRight]))(collideRect(_J.toList([TopBottom]))($));
+      return collideMobius(_L.fromArray([LeftRight]))(collideRect(_L.fromArray([TopBottom]))($));
    };
-   var torus = collideCyl(_J.toList([LeftRight
-                                    ,TopBottom]));
+   var torus = collideCyl(_L.fromArray([LeftRight
+                                       ,TopBottom]));
    var klein = function ($) {
-      return collideMobius(_J.toList([LeftRight]))(collideCyl(_J.toList([TopBottom]))($));
+      return collideMobius(_L.fromArray([LeftRight]))(collideCyl(_L.fromArray([TopBottom]))($));
    };
-   var chaosphere = collideMobius(_J.toList([LeftRight
-                                            ,TopBottom]));
+   var chaosphere = collideMobius(_L.fromArray([LeftRight
+                                               ,TopBottom]));
    var getSurface = function (s) {
       return _U.eq(s,
       Rectangle) ? rectangle : _U.eq(s,
@@ -444,17 +445,17 @@ Elm.Klein.make = function (_elm) {
                                    ,50]
                                   ,["vy",50]],
    defaultEnemy3);
-   var defaultEnemies = _J.toList([defaultEnemy1
-                                  ,defaultEnemy2
-                                  ,defaultEnemy3
-                                  ,defaultEnemy4]);
+   var defaultEnemies = _L.fromArray([defaultEnemy1
+                                     ,defaultEnemy2
+                                     ,defaultEnemy3
+                                     ,defaultEnemy4]);
    var defaultGame = {_: {}
                      ,bullet: defaultBullet
                      ,enemies: defaultEnemies
                      ,player: defaultPlayer
                      ,state: Begin
                      ,surface: Rectangle};
-   var testEnemies = _J.toList([defaultEnemy1]);
+   var testEnemies = _L.fromArray([defaultEnemy1]);
    var Medium = {ctor: "Medium"};
    var Small = {ctor: "Small"};
    var enemySize = function (t) {
@@ -504,7 +505,7 @@ Elm.Klein.make = function (_elm) {
                              ,["vy",e.vy + dy]
                              ,["size",newsize]],
          e);
-         return _J.toList([e1,e2]);
+         return _L.fromArray([e1,e2]);
       }();
    };
    var handleBulletCollision = function (_v22) {
@@ -512,7 +513,7 @@ Elm.Klein.make = function (_elm) {
          switch (_v22.ctor)
          {case "_Tuple2":
             return _v22._1 && _U.eq(_v22._0.size,
-              Small) ? _J.toList([]) : _v22._1 ? splitEnemy(_v22._0) : _J.toList([_v22._0]);}
+              Small) ? _L.fromArray([]) : _v22._1 ? splitEnemy(_v22._0) : _L.fromArray([_v22._0]);}
          _E.Case($moduleName,
          "between lines 206 and 208");
       }();
@@ -646,21 +647,21 @@ Elm.Klein.make = function (_elm) {
             return A3(Graphics.Collage.collage,
             800,
             600,
-            _J.toList([background
-                      ,Graphics.Collage.rotate(Basics.degrees(_v30.player.angle))(Graphics.Collage.move({ctor: "_Tuple2"
-                                                                                                        ,_0: _v30.player.x
-                                                                                                        ,_1: _v30.player.y})(drawPlayer(_v30.player.rev)))
-                      ,drawEnemies(_v30.enemies)
-                      ,bullet$
-                      ,v$
-                      ,i$
-                      ,Graphics.Collage.move({ctor: "_Tuple2"
-                                             ,_0: 0
-                                             ,_1: 200})(formatText(String.show(_v30.state)))
-                      ,Graphics.Collage.move({ctor: "_Tuple2"
-                                             ,_0: 0
-                                             ,_1: -200})(formatText(String.show(_v30.surface)))
-                      ,foreground]));
+            _L.fromArray([background
+                         ,Graphics.Collage.rotate(Basics.degrees(_v30.player.angle))(Graphics.Collage.move({ctor: "_Tuple2"
+                                                                                                           ,_0: _v30.player.x
+                                                                                                           ,_1: _v30.player.y})(drawPlayer(_v30.player.rev)))
+                         ,drawEnemies(_v30.enemies)
+                         ,bullet$
+                         ,v$
+                         ,i$
+                         ,Graphics.Collage.move({ctor: "_Tuple2"
+                                                ,_0: 0
+                                                ,_1: 200})(formatText(String.show(_v30.state)))
+                         ,Graphics.Collage.move({ctor: "_Tuple2"
+                                                ,_0: 0
+                                                ,_1: -200})(formatText(String.show(_v30.surface)))
+                         ,foreground]));
          }();
       }();
    };
