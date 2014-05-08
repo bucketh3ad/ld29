@@ -232,16 +232,16 @@ applyThrust active dt ({x,y,vx,vy,angle,rev} as p) =
       vy' = clamp -200 200 (vy + vyA)
   in {p | vx <- vx'
         , vy <- vy'
-        , x <- movePlayer dt x vx -outerXMax outerXMax
-        , y <- movePlayer dt y vy -outerYMax outerYMax }
+        , x <- moveObject dt x vx -outerXMax outerXMax
+        , y <- moveObject dt y vy -outerYMax outerYMax }
 
 enemyMovement : Float -> Enemy -> Enemy
 enemyMovement dt e = 
-  { e| x <- movePlayer dt e.x e.vx -outerXMax outerXMax
-     , y <- movePlayer dt e.y e.vy -outerYMax outerYMax }
+  { e| x <- moveObject dt e.x e.vx -outerXMax outerXMax
+     , y <- moveObject dt e.y e.vy -outerYMax outerYMax }
 
-movePlayer : Float -> Float -> Float -> Float -> Float -> Float
-movePlayer dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
+moveObject : Float -> Float -> Float -> Float -> Float -> Float
+moveObject dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
 
 
 --Update functions
@@ -251,30 +251,26 @@ createBullet ({x,y,vx,vy,angle,rev} as p) =
       vy' = cos (degrees angle) * 200
   in {x = p.x, y = p.y, vx = vx', vy = vy', angle = p.angle, rev = p.rev, age = 0, active = True}
 
-stepBullet : Surface {} -> Input -> Bullet -> Bullet
+stepBullet : Surface {active:Bool,age:Float} -> Input -> Bullet -> Bullet
 stepBullet surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,age,active} as b) =
   let active' = active && age <= 2
       age' = if active' then age + dt else 0
-      b' = { b | x <- movePlayer dt x vx -outerXMax outerXMax
-               , y <- movePlayer dt y vy -outerYMax outerYMax }
-      b'' = {b' - age}
-      b''' = surface <| {b'' - active}
-      b'''' = {b''' | age = age'}
-  in { b'''' | active = active' }
+      b' = { b | x <- moveObject dt x vx -outerXMax outerXMax
+               , y <- moveObject dt y vy -outerYMax outerYMax }
+  in  {b'| active <- active', age <- age'} |> surface 
 
-stepEnemy : Surface {} -> Input -> Enemy -> Enemy
+stepEnemy : Surface {size:EnemyType} -> Input -> Enemy -> Enemy
 stepEnemy surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,size} as e) =
   let angle' = if rev then angle + (dt * 50) else angle - (dt * 50)
       e' = enemyMovement dt e
-      e'' = surface <| { e' - size }
-      e''' = { e'' | size = e.size }
-  in  { e''' | angle <- angle'}
+  in  { e' | angle <- angle'} |> surface
 
 stepPlayer : Surface {} -> Input -> Player -> Player
 stepPlayer surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as p) =
-  let p' = surface <| applyThrust (dy == 1) dt p
+  let p' = applyThrust (dy == 1) dt p
       dx' = if rev then -dx else dx
-  in {p' | angle <- p'.angle - (toFloat dx' * dt * 100)}
+      angle' = p'.angle - (toFloat dx' * dt * 100)
+  in {p' | angle <- angle'} |> surface
  
 stepGame : Input -> Game -> Game
 stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemies,bullet} as g) =
