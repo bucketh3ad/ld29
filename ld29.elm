@@ -68,7 +68,22 @@ input = sampleOn delta (Input <~ Keyboard.space
 
 --Constants
 thrustFactor : Float
-thrustFactor = 2
+thrustFactor = 2.5
+
+rotFactor : Float
+rotFactor = 200
+
+maxSpeed : Float
+maxSpeed = 200
+
+bulletSpeed : Float
+bulletSpeed = 400
+
+bulletAge : Float
+bulletAge = 1
+
+enemySpin : Float
+enemySpin = 50
 
 outerXMax : Float
 outerXMax = 380
@@ -107,27 +122,30 @@ findDistance ax ay bx by =
   
 enemySize : EnemyType -> Float
 enemySize t =
-  if  |t == Small -> 18
-      |t == Medium -> 30
-      |t == Large -> 45
+  case t of
+    Small -> 18
+    Medium -> 30
+    Large -> 45
       
 nextSurface : SurfaceType -> SurfaceType
 nextSurface s =
-  if | s == Rectangle -> Cylinder
-     | s == Cylinder -> Mobius
-     | s == Mobius -> Torus
-     | s == Torus -> Klein
-     | s == Klein -> Chaosphere
-     | s == Chaosphere -> Rectangle
+  case s of
+    Rectangle -> Cylinder
+    Cylinder -> Mobius
+    Mobius -> Torus
+    Torus -> Klein
+    Klein -> Chaosphere
+    Chaosphere -> Rectangle
      
 getSurface : SurfaceType -> Surface a
 getSurface s =
-  if | s == Rectangle -> rectangle
-     | s == Cylinder -> cylinder
-     | s == Mobius -> mobius
-     | s == Torus -> torus
-     | s == Klein -> klein
-     | s == Chaosphere -> chaosphere
+  case s of
+    Rectangle -> rectangle
+    Cylinder -> cylinder
+    Mobius -> mobius
+    Torus -> torus
+    Klein -> klein
+    Chaosphere -> chaosphere
      
 
 --Surface definitions
@@ -228,8 +246,8 @@ applyThrust active dt ({x,y,vx,vy,angle,rev} as p) =
       vyA = if active
             then thrustFactor*(cos (degrees angle))
             else 0
-      vx' = clamp -200 200 (vx - vxA)
-      vy' = clamp -200 200 (vy + vyA)
+      vx' = clamp -maxSpeed maxSpeed (vx - vxA)
+      vy' = clamp -maxSpeed maxSpeed (vy + vyA)
   in {p | vx <- vx'
         , vy <- vy'
         , x <- moveObject dt x vx -outerXMax outerXMax
@@ -247,13 +265,13 @@ moveObject dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
 --Update functions
 createBullet : Player -> Bullet
 createBullet ({x,y,vx,vy,angle,rev} as p) = 
-  let vx' = -(sin (degrees angle) * 200)
-      vy' = cos (degrees angle) * 200
+  let vx' = -(sin (degrees angle) * bulletSpeed)
+      vy' = cos (degrees angle) * bulletSpeed
   in {x = p.x, y = p.y, vx = vx', vy = vy', angle = p.angle, rev = p.rev, age = 0, active = True}
 
 stepBullet : Surface {active:Bool,age:Float} -> Input -> Bullet -> Bullet
 stepBullet surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,age,active} as b) =
-  let active' = active && age <= 2
+  let active' = active && age <= bulletAge
       age' = if active' then age + dt else 0
       b' = { b | x <- moveObject dt x vx -outerXMax outerXMax
                , y <- moveObject dt y vy -outerYMax outerYMax }
@@ -261,7 +279,7 @@ stepBullet surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,age,active} as 
 
 stepEnemy : Surface {size:EnemyType} -> Input -> Enemy -> Enemy
 stepEnemy surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,size} as e) =
-  let angle' = if rev then angle + (dt * 50) else angle - (dt * 50)
+  let angle' = if rev then angle + (dt * enemySpin) else angle - (dt * enemySpin)
       e' = enemyMovement dt e
   in  { e' | angle <- angle'} |> surface
 
@@ -269,7 +287,7 @@ stepPlayer : Surface {} -> Input -> Player -> Player
 stepPlayer surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as p) =
   let p' = applyThrust (dy == 1) dt p
       dx' = if rev then -dx else dx
-      angle' = p'.angle - (toFloat dx' * dt * 100)
+      angle' = p'.angle - (toFloat dx' * dt * rotFactor)
   in {p' | angle <- angle'} |> surface
  
 stepGame : Input -> Game -> Game
