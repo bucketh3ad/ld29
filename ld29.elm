@@ -408,7 +408,30 @@ drawGame ({state,player,surface,enemies,bullet} as game) =
       , foreground
       ]
 
+
+--MENU FUNCTIONALITY
+
+mInput : Signal Bool
+mInput = foldp (\n a -> if n then not a else a) False Keyboard.enter
+
+drawMenu : {x:Int,y:Int} ->  Element
+drawMenu i = collage 800 600
+    [ background
+    , show i |> formatText
+    , foreground
+    ]
+
+
 --MAIN GAME LOOP
+menuScene : Signal Element
+menuScene = drawMenu <~ Keyboard.arrows
+
+gameScene : Signal Element
+gameScene = drawGame <~ gameState
+
+sceneToggle: Signal Element -> Signal Element -> Signal Bool -> Signal Element
+sceneToggle = lift3 (\s1 s2 t -> if t then s1 else s2)
+
 main : Signal Element
-main = lift drawGame gameState
+main = sceneToggle menuScene gameScene mInput
 
