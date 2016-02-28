@@ -1,28 +1,34 @@
-import Keyboard
+module Ld29 where
 
+import Keyboard
+import Time
+import Graphics.Collage exposing (..)
+import Graphics.Element exposing (show,Element)
+import Color exposing (..)
+import Text
 
 --MODELS AND INPUTS
-type Input = {space:Bool, dx:Int, dy:Int, dt:Time}
+type alias Input = {space:Bool, dx:Int, dy:Int, dt:Time.Time}
 
-type GameObject a = {a | x:Float, y:Float, vx:Float, vy:Float, angle:Float, rev:Bool}
+type alias GameObject a = {a | x:Float, y:Float, vx:Float, vy:Float, angle:Float, rev:Bool}
 
-type Player = GameObject {}
+type alias Player = GameObject {}
 
-data EnemyType = Small | Medium | Large
+type EnemyType = Small | Medium | Large
 
-type Enemy =  GameObject {size:EnemyType}
+type alias Enemy =  GameObject {size:EnemyType}
 
-type Bullet = GameObject {age:Float,active:Bool}
+type alias Bullet = GameObject {age:Float,active:Bool}
 
-data GameState = Play | Win | Lose | Begin | Victory
+type GameState = Play | Win | Lose | Begin | Victory
 
-data Collision = LeftRight | TopBottom
+type Collision = LeftRight | TopBottom
 
-type Surface = Player -> Player
+type alias Surface = Player -> Player
 
-data SurfaceType = Rectangle | Cylinder | Torus | Mobius | Klein | Chaosphere
+type SurfaceType = Rectangle | Cylinder | Torus | Mobius | Klein | Chaosphere
 
-type Game = {state:GameState, player:Player, surface:SurfaceType, enemies:[Enemy], bullet:Bullet}
+type alias Game = {state:GameState, player:Player, surface:SurfaceType, enemies:List Enemy, bullet:Bullet}
 
 defaultGame : Game
 defaultGame = { state = Begin,
@@ -38,18 +44,18 @@ defaultEnemy1 : Enemy
 defaultEnemy1 = {x = 50, y = 50, vx = 50, vy = 50, angle = 0, rev = False, size = Large}
 
 defaultEnemy2 : Enemy
-defaultEnemy2 = {defaultEnemy1 | y  <- -50, vy <- -50}
+defaultEnemy2 = {defaultEnemy1 | y  = -50, vy = -50}
 
 defaultEnemy3 : Enemy
-defaultEnemy3 = {defaultEnemy2 | x <- -50, vx <- -50}
+defaultEnemy3 = {defaultEnemy2 | x = -50, vx = -50}
 
 defaultEnemy4 : Enemy
-defaultEnemy4 = {defaultEnemy3 | y <- 50, vy <- 50}
+defaultEnemy4 = {defaultEnemy3 | y = 50, vy = 50}
 
-defaultEnemies : [Enemy]
+defaultEnemies : List Enemy
 defaultEnemies = [defaultEnemy1, defaultEnemy2, defaultEnemy3, defaultEnemy4]
 
-testEnemies : [Enemy]
+testEnemies : List Enemy
 testEnemies = [defaultEnemy1]
 
 
@@ -57,14 +63,15 @@ defaultBullet : Bullet
 defaultBullet = {x = 0, y = 0, vx = 0, vy = 0, angle = 0, rev = False, age = 0,active = False}
 
 
-delta : Signal Time
-delta = inSeconds <~ fps 60
+delta : Signal Time.Time
+delta = Signal.map Time.inSeconds <| Time.fps 60
 
 input : Signal Input
-input = sampleOn delta (Input <~ Keyboard.space
-                               ~ lift .x Keyboard.arrows
-                               ~ lift .y Keyboard.arrows
-                               ~ delta)
+input = 
+  let s = Keyboard.space
+      x = Signal.map .x Keyboard.arrows
+      y = Signal.map .y Keyboard.arrows
+  in Signal.map4 Input s x y delta 
 
 --Constants
 thrustFactor : Float
@@ -88,11 +95,11 @@ innerYMax = 235
 --UPDATE SECTION
 
 --Helper functions
-doV : [Collision] -> Bool
-doV cols = any (\n -> n == TopBottom) cols
+doV : List Collision -> Bool
+doV cols = List.any (\n -> n == TopBottom) cols
 
-doH : [Collision] -> Bool
-doH cols = any (\n -> n == LeftRight) cols
+doH : List Collision -> Bool
+doH cols = List.any (\n -> n == LeftRight) cols
         
 reflectAngle : Bool -> Float -> Float
 reflectAngle yaxis a =
@@ -107,27 +114,30 @@ findDistance ax ay bx by =
   
 enemySize : EnemyType -> Float
 enemySize t =
-  if  |t == Small -> 18
-      |t == Medium -> 30
-      |t == Large -> 45
+  case t of
+    Small -> 18
+    Medium -> 30
+    Large -> 45
       
 nextSurface : SurfaceType -> SurfaceType
 nextSurface s =
-  if | s == Rectangle -> Cylinder
-     | s == Cylinder -> Mobius
-     | s == Mobius -> Torus
-     | s == Torus -> Klein
-     | s == Klein -> Chaosphere
-     | s == Chaosphere -> Rectangle
+  case s of
+    Rectangle -> Cylinder
+    Cylinder -> Mobius
+    Mobius -> Torus
+    Torus -> Klein
+    Klein -> Chaosphere
+    Chaosphere -> Rectangle
      
 getSurface : SurfaceType -> Surface
 getSurface s =
-  if | s == Rectangle -> rectangle
-     | s == Cylinder -> cylinder
-     | s == Mobius -> mobius
-     | s == Torus -> torus
-     | s == Klein -> klein
-     | s == Chaosphere -> chaosphere
+  case s of
+    Rectangle -> rectangle
+    Cylinder -> cylinder
+    Mobius -> mobius
+    Torus -> torus
+    Klein -> klein
+    Chaosphere -> chaosphere
      
 
 --Surface definitions
@@ -135,87 +145,90 @@ rectangle : Player -> Player
 rectangle = collideRect [LeftRight,TopBottom]
 
 cylinder : Player -> Player
-cylinder = collideCyl [LeftRight] . collideRect [TopBottom]
+cylinder = collideCyl [LeftRight] << collideRect [TopBottom]
 
 mobius : Player -> Player
-mobius = collideMobius [LeftRight] . collideRect [TopBottom]
+mobius = collideMobius [LeftRight] << collideRect [TopBottom]
 
 torus : Player -> Player
 torus = collideCyl [LeftRight,TopBottom]
 
 klein : Player -> Player
-klein = collideMobius [LeftRight] . collideCyl [TopBottom]
+klein = collideMobius [LeftRight] << collideCyl [TopBottom]
 
 chaosphere : Player -> Player
 chaosphere = collideMobius [LeftRight,TopBottom]
 
 
 --Border collision functions
-collideRect : [Collision] -> Player -> Player
+collideRect : List Collision -> Player -> Player
 collideRect cols ({x,y,vx,vy,angle,rev} as p) =
   let collidingH = abs x >= innerXMax
       collidingV = abs y >= innerYMax
       doH' = collidingH && doH cols
       doV' = collidingV && doV cols
-  in {p | vx <- if doH' then -vx else vx
-        , vy <- if doV' then -vy else vy
-        , x <- if doH' then clamp -innerXMax innerXMax x else x
-        , y <- if doV' then clamp -innerYMax innerYMax y else y }
+  in {p | vx = if doH' then -vx else vx
+        , vy = if doV' then -vy else vy
+        , x = if doH' then clamp -innerXMax innerXMax x else x
+        , y = if doV' then clamp -innerYMax innerYMax y else y }
         
-collideCyl : [Collision] -> Player -> Player
+collideCyl : List Collision -> Player -> Player
 collideCyl cols ({x,y,vx,vy,angle,rev} as p) =
   let collidingH = abs x >= outerXMax
       collidingV = abs y >= outerYMax
-  in {p | x <- if collidingH && doH cols then -x else x
-        , y <- if collidingV && doV cols then -y else y }
+  in {p | x = if collidingH && doH cols then -x else x
+        , y = if collidingV && doV cols then -y else y }
         
-collideMobius : [Collision] -> Player -> Player
+collideMobius : List Collision -> Player -> Player
 collideMobius cols ({x,y,vx,vy,angle,rev} as p) =
   let collidingH = abs x >= outerXMax
       collidingV = abs y >= outerYMax
       doV' = collidingV && doV cols
       doH' = collidingH && doH cols
       doMove = doH' || doV'
-  in {p | x <- if doMove then -x else x
-        , y <- if doMove then -y else y
-        , vx <- if doV' then -vx else vx
-        , vy <- if doH' then -vy else vy
-        , angle <- if doMove then reflectAngle doV' angle else angle
-        , rev <- if doMove then not rev else rev}
+  in {p | x = if doMove then -x else x
+        , y = if doMove then -y else y
+        , vx = if doV' then -vx else vx
+        , vy = if doH' then -vy else vy
+        , angle = if doMove then reflectAngle doV' angle else angle
+        , rev = if doMove then not rev else rev}
 
 --Object collision functions
 checkCollision : GameObject a -> Enemy -> Bool
 checkCollision obj e = findDistance e.x e.y obj.x obj.y <= enemySize e.size
 
-mapPlayerCollisions : Player -> [Enemy] -> Bool
+mapPlayerCollisions : Player -> List Enemy -> Bool
 mapPlayerCollisions p es =
-  let bools = map (checkCollision p) es
-  in any (\ n -> n) bools
+  let bools = List.map (checkCollision p) es
+  in List.any (\ n -> n) bools
 
-mapBulletCollisions : Bullet -> [Enemy] -> ([Enemy],Bool)
+mapBulletCollisions : Bullet -> List Enemy -> (List Enemy,Bool)
 mapBulletCollisions b es = 
-  let bools = map (checkCollision b) es
-      b' = any (\ n -> n) bools
-      es' = concat <| map handleBulletCollision (zip es bools)
+  let bools = List.map (checkCollision b) es
+      b' = List.any (\ n -> n) bools
+      es' = List.concat <| List.map handleBulletCollision <| List.map2 (,) es bools
   in  (es',b')
   
-handleBulletCollision : (Enemy,Bool) -> [Enemy]
+handleBulletCollision : (Enemy,Bool) -> List Enemy
 handleBulletCollision (e,b) =
-  if | b && e.size == Small -> []
-     | b -> splitEnemy e
-     | otherwise -> [e]
+  if b && e.size == Small then
+    []
+  else if b then
+    splitEnemy e
+  else
+    [e]
      
-splitEnemy : Enemy -> [Enemy]
+splitEnemy : Enemy -> List Enemy
 splitEnemy e = 
   let newsize = if e.size == Large then Medium else Small
       dx = if e.vx > 0 then 15 else -15
       dy = if e.vy > 0 then 15 else -15
-      e1 = {e | vx <- e.vx + dx
-              , vy <- e.vy - dy
-              , size <- newsize }
-      e2 = {e | vx <- e.vx - dx
-              , vy <- e.vy + dy
-              , size <- newsize }
+      e1 = {e | vx = e.vx + dx
+              , vy = e.vy - dy
+              , size = newsize }
+      e2 = {e | vx = e.vx - dx
+              , vy = e.vy + dy
+              , size = newsize }
   in [e1,e2]
 
 --Movement functions
@@ -230,15 +243,15 @@ applyThrust active dt ({x,y,vx,vy,angle,rev} as p) =
             else 0
       vx' = clamp -200 200 (vx - vxA)
       vy' = clamp -200 200 (vy + vyA)
-  in {p | vx <- vx'
-        , vy <- vy'
-        , x <- movePlayer dt x vx -outerXMax outerXMax
-        , y <- movePlayer dt y vy -outerYMax outerYMax }
+  in {p | vx = vx'
+        , vy = vy'
+        , x = movePlayer dt x vx -outerXMax outerXMax
+        , y = movePlayer dt y vy -outerYMax outerYMax }
 
 enemyMovement : Float -> Enemy -> Enemy
 enemyMovement dt e = 
-  { e| x <- movePlayer dt e.x e.vx -outerXMax outerXMax
-     , y <- movePlayer dt e.y e.vy -outerYMax outerYMax }
+  { e| x = movePlayer dt e.x e.vx -outerXMax outerXMax
+     , y = movePlayer dt e.y e.vy -outerYMax outerYMax }
 
 movePlayer : Float -> Float -> Float -> Float -> Float -> Float
 movePlayer dt x vx xmin xmax = clamp xmin xmax (x + vx * dt)
@@ -255,62 +268,60 @@ stepBullet : Surface -> Input -> Bullet -> Bullet
 stepBullet surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,age,active} as b) =
   let active' = active && age <= 2
       age' = if active' then age + dt else 0
-      b' = { b | x <- movePlayer dt x vx -outerXMax outerXMax
-               , y <- movePlayer dt y vy -outerYMax outerYMax }
-      b'' = {b' - age}
-      b''' = surface <| {b'' - active}
-      b'''' = {b''' | age = age'}
-  in { b'''' | active = active' }
+      b' = { b | x = movePlayer dt x vx -outerXMax outerXMax
+               , y = movePlayer dt y vy -outerYMax outerYMax }
+      b'' = surface b' 
+  in { b'' | active = active'
+           , age = age'}
 
 stepEnemy : Surface -> Input -> Enemy -> Enemy
 stepEnemy surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,size} as e) =
   let angle' = if rev then angle + (dt * 50) else angle - (dt * 50)
       e' = enemyMovement dt e
-      e'' = surface <| { e' - size }
-      e''' = { e'' | size = e.size }
-  in  { e''' | angle <- angle'}
+      e'' = surface e' 
+  in  { e'' | angle = angle'}
 
 stepPlayer : Surface -> Input -> Player -> Player
 stepPlayer surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as p) =
   let p' = surface <| applyThrust (dy == 1) dt p
       dx' = if rev then -dx else dx
-  in {p' | angle <- p'.angle - (toFloat dx' * dt * 100)}
+  in {p' | angle = p'.angle - (toFloat dx' * dt * 100)}
  
 stepGame : Input -> Game -> Game
 stepGame ({space,dx,dy,dt} as i) ({state,player,surface,enemies,bullet} as g) =
   let stuck = abs player.x == outerXMax && abs player.y == outerYMax
-      p' = if stuck then {player | x <- 0, y <-0 } else player
+      p' = if stuck then {player | x = 0, y =0 } else player
       b' = if not bullet.active && space && state == Play
              then createBullet player
              else bullet
       bulletCollision = if bullet.active then mapBulletCollisions bullet enemies else (enemies,False)
       b'' = if not (snd bulletCollision) then b'
-            else { b' | active <- False }
+            else { b' | active = False }
       e' = fst bulletCollision
       playerCollision = mapPlayerCollisions p' e'
-      state' = if | length e' == 0 -> Win
-                  | playerCollision -> Lose
-                  | otherwise -> state
-      p'' = if | state' == Play -> stepPlayer (getSurface surface) i p'
-               | state' /= Play && space -> defaultPlayer
-               | otherwise -> p'
-      e'' = if | state' == Play -> map (stepEnemy (getSurface surface) i) e'
-               | state' /= Play && space -> defaultEnemies
-               | otherwise -> e'
-      b''' = if state' == Play then stepBullet (getSurface surface) i b'' else { b'' | active <- False }
+      state' = if List.length e' == 0 then Win
+               else if playerCollision then Lose
+               else state
+      p'' = if state' == Play then stepPlayer (getSurface surface) i p'
+            else if state' /= Play && space then defaultPlayer
+            else p'
+      e'' = if state' == Play then List.map (stepEnemy (getSurface surface) i) e'
+            else if state' /= Play && space then defaultEnemies
+            else e'
+      b''' = if state' == Play then stepBullet (getSurface surface) i b'' else { b'' | active = False }
       nextSurf = nextSurface surface
       surface' = if state' == Win && space then nextSurf else surface
-      state'' = if | state' /= Play && space -> Play
-                   | state' == Win && surface' == Chaosphere -> Victory
-                   | otherwise -> state'
-  in {g | player <- p''
-        , enemies <- e''  
-        , bullet <- b'''
-        , surface <- surface'
-        , state <- state'' }
+      state'' = if state' /= Play && space then Play
+                else if state' == Win && surface' == Chaosphere then Victory
+                else state'
+  in {g | player = p''
+        , enemies = e''  
+        , bullet = b'''
+        , surface = surface'
+        , state = state'' }
 
 gameState : Signal Game
-gameState = foldp stepGame defaultGame input
+gameState = Signal.foldp stepGame defaultGame input
 
 --DRAWING SECTION
 
@@ -343,19 +354,20 @@ drawBullet = circle 5 |> filled white
   
 drawEnemy : Enemy -> Form
 drawEnemy e =
-  let e' = if | e.size == Large -> ngon 12 35 |> outlined (solid white)
-              | e.size == Medium -> ngon 6 25 |> outlined (solid white)
-              | e.size == Small -> ngon 3 10 |> outlined (solid white)
+  let e' = case e.size of
+                Large -> ngon 12 35 |> outlined (solid white)
+                Medium -> ngon 6 25 |> outlined (solid white)
+                Small -> ngon 3 10 |> outlined (solid white)
   in e' |> move (e.x,e.y) |> rotate (degrees e.angle)
   
-drawEnemies : [Enemy] -> Form
-drawEnemies = group . map drawEnemy
+drawEnemies : List Enemy -> Form
+drawEnemies = group << List.map drawEnemy
   
-prettyStats : [Float] -> Form
-prettyStats = formatText . show . map (\n -> truncate n)
+prettyStats : List Float -> Form
+prettyStats = formatText << toString << List.map truncate 
 
 formatText : String -> Form
-formatText = toForm . centered . (Text.color white) . toText
+formatText = toForm << Graphics.Element.centered << (Text.color white) << Text.fromString
 
 drawVictory : Form
 drawVictory = "Congratulations! You have conquered every surface!"
@@ -368,14 +380,14 @@ drawInstruction = "Press SPACE to start. Control with the arrow keys"
 drawGame : Game -> Element
 drawGame ({state,player,surface,enemies,bullet} as game) =
   let bullet' = if not bullet.active
-                then toForm (spacer 1 1)
+                then toForm (Graphics.Element.spacer 1 1)
                 else drawBullet |> move (bullet.x, bullet.y)
       v' = if state == Victory
            then drawVictory |> move (0,100)
-           else toForm (spacer 1 1)
+           else toForm (Graphics.Element.spacer 1 1)
       i' = if state == Begin
            then drawInstruction |> move (0,100)
-           else toForm (spacer 1 1)
+           else toForm (Graphics.Element.spacer 1 1)
   in collage 800 600
       [ background
       , drawPlayer player.rev
@@ -387,14 +399,14 @@ drawGame ({state,player,surface,enemies,bullet} as game) =
       , i'
       --, prettyStats [player.x,player.y,player.vx,player.vy]
       --  |> move (0, -100)
-      , show state |> formatText
+      , toString state |> formatText
         |> move (0,200)
-      , show surface |> formatText
+      , toString surface |> formatText
         |> move (0,-200)
       , foreground
       ]
 
 --MAIN GAME LOOP
 main : Signal Element
-main = lift drawGame gameState
+main = Signal.map drawGame gameState
 
