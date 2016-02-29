@@ -24,7 +24,7 @@ type GameState = Play | Win | Lose | Begin | Victory
 
 type Collision = LeftRight | TopBottom
 
-type alias Surface = Player -> Player
+type alias Surface a = GameObject a -> GameObject a
 
 type SurfaceType = Rectangle | Cylinder | Torus | Mobius | Klein | Chaosphere
 
@@ -129,7 +129,7 @@ nextSurface s =
     Klein -> Chaosphere
     Chaosphere -> Rectangle
      
-getSurface : SurfaceType -> Surface
+getSurface : SurfaceType -> Surface a
 getSurface s =
   case s of
     Rectangle -> rectangle
@@ -139,29 +139,28 @@ getSurface s =
     Klein -> klein
     Chaosphere -> chaosphere
      
-
 --Surface definitions
-rectangle : Player -> Player
+rectangle : Surface a
 rectangle = collideRect [LeftRight,TopBottom]
 
-cylinder : Player -> Player
+cylinder : Surface a
 cylinder = collideCyl [LeftRight] << collideRect [TopBottom]
 
-mobius : Player -> Player
+mobius : Surface a
 mobius = collideMobius [LeftRight] << collideRect [TopBottom]
 
-torus : Player -> Player
+torus : Surface a
 torus = collideCyl [LeftRight,TopBottom]
 
-klein : Player -> Player
+klein : Surface a
 klein = collideMobius [LeftRight] << collideCyl [TopBottom]
 
-chaosphere : Player -> Player
+chaosphere : Surface a
 chaosphere = collideMobius [LeftRight,TopBottom]
 
 
 --Border collision functions
-collideRect : List Collision -> Player -> Player
+collideRect : List Collision -> Surface a
 collideRect cols ({x,y,vx,vy,angle,rev} as p) =
   let collidingH = abs x >= innerXMax
       collidingV = abs y >= innerYMax
@@ -172,14 +171,14 @@ collideRect cols ({x,y,vx,vy,angle,rev} as p) =
         , x = if doH' then clamp -innerXMax innerXMax x else x
         , y = if doV' then clamp -innerYMax innerYMax y else y }
         
-collideCyl : List Collision -> Player -> Player
+collideCyl : List Collision -> Surface a
 collideCyl cols ({x,y,vx,vy,angle,rev} as p) =
   let collidingH = abs x >= outerXMax
       collidingV = abs y >= outerYMax
   in {p | x = if collidingH && doH cols then -x else x
         , y = if collidingV && doV cols then -y else y }
         
-collideMobius : List Collision -> Player -> Player
+collideMobius : List Collision -> Surface a
 collideMobius cols ({x,y,vx,vy,angle,rev} as p) =
   let collidingH = abs x >= outerXMax
       collidingV = abs y >= outerYMax
@@ -264,24 +263,24 @@ createBullet ({x,y,vx,vy,angle,rev} as p) =
       vy' = cos (degrees angle) * 200
   in {x = p.x, y = p.y, vx = vx', vy = vy', angle = p.angle, rev = p.rev, age = 0, active = True}
 
-stepBullet : Surface -> Input -> Bullet -> Bullet
+stepBullet : Surface {age:Float,active:Bool} -> Input -> Bullet -> Bullet
 stepBullet surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,age,active} as b) =
   let active' = active && age <= 2
       age' = if active' then age + dt else 0
       b' = { b | x = movePlayer dt x vx -outerXMax outerXMax
                , y = movePlayer dt y vy -outerYMax outerYMax }
       b'' = surface b' 
-  in { b'' | active = active'
-           , age = age'}
+  in  {b'' | age = age'
+           , active = active'}
 
-stepEnemy : Surface -> Input -> Enemy -> Enemy
+stepEnemy : Surface {size:EnemyType} -> Input -> Enemy -> Enemy
 stepEnemy surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev,size} as e) =
   let angle' = if rev then angle + (dt * 50) else angle - (dt * 50)
       e' = enemyMovement dt e
       e'' = surface e' 
-  in  { e'' | angle = angle'}
+  in  { e'' | angle = angle', size = size}
 
-stepPlayer : Surface -> Input -> Player -> Player
+stepPlayer : Surface {} -> Input -> Player -> Player
 stepPlayer surface ({space,dx,dy,dt} as i) ({x,y,vx,vy,angle,rev} as p) =
   let p' = surface <| applyThrust (dy == 1) dt p
       dx' = if rev then -dx else dx
